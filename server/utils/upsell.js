@@ -1,16 +1,16 @@
-// Simple rule-based upsell map — deliberately not another LLM call, to keep latency low
-const upsellRules = {
-  footwear: "accessories",   // shoes -> suggest socks
-  outerwear: "accessories",  // jacket -> suggest accessories
-  electronics: "accessories", // earbuds -> suggest phone cover etc.
+// Explicit product-to-product upsell pairs — more precise than category-only matching
+const upsellMap = {
+  footwear: "Cotton Ankle Socks (Pack of 3)",
+  electronics: "Phone Cover",
+  outerwear: "Cotton Ankle Socks (Pack of 3)",
 };
 
 export async function getUpsellSuggestion(matchedProduct, Product) {
-  const targetCategory = upsellRules[matchedProduct.category];
-  if (!targetCategory) return null;
+  const targetName = upsellMap[matchedProduct.category];
+  if (!targetName) return null;
 
   const suggestion = await Product.findOne({
-    category: targetCategory,
+    name: targetName,
     _id: { $ne: matchedProduct._id },
   });
 
