@@ -15,6 +15,60 @@ function getRazorpayInstance() {
   });
 }
 
+export async function createOrderForItems(items) {
+  const rules = await MerchantRule.findOne();
+  let amount = 0;
+  const orderItems = [];
+
+  for (const { productId, qty } of items) {
+    const product = await Product.findById(productId);
+    if (!product) throw new Error(`Product not found: ${productId}`);
+    amount += product.price * qty;
+    orderItems.push({ productId: product._id, name: product.name, price: product.price, qty });
+  }
+
+  if (amount > rules.maxOrderValue) {
+    await AuditLog.create({
+      action: "order_blocked",
+      reason: `Order amount ₹${amount} exceeds max allowed ₹${rules.maxOrderValue}`,
+      amount,
+    });
+    return {
+      blocked: true,
+      reason: `This order exceeds the ₹${rules.maxOrderValue} limit, so I can't complete it automatically.`,
+    };
+  }
+
+  const razorpay = getRazorpayInstance();
+  const rzpOrder = await razorpay.orders.create({
+    amount: amount * 100,
+    currency: "INR",
+    receipt: `rcpt_${Date.now()}`,
+  });
+
+  const order = await Order.create({
+    razorpayOrderId: rzpOrder.id,
+    items: orderItems,
+    amount,
+    status: "created",
+    isUpsell: items.length > 1,
+  });
+
+  await AuditLog.create({
+    action: "order_created",
+    reason: `Order created for ${orderItems.map((item) => item.name).join(", ")}`,
+    orderRef: order._id,
+    amount,
+  });
+
+  return {
+    razorpayOrderId: rzpOrder.id,
+    amount: amount * 100,
+    keyId: process.env.RAZORPAY_KEY_ID,
+    dbOrderId: order._id,
+  };
+}
+
 router.get("/products", async (req, res) => {
   const products = await Product.find();
   res.json(products);
@@ -22,52 +76,12 @@ router.get("/products", async (req, res) => {
 
 router.post("/create", async (req, res) => {
   try {
-    const { productId, qty = 1 } = req.body;
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    const { productId, qty = 1 } = req.body || {};
+    if (!productId) return res.status(400).json({ error: "productId is required" });
 
-    const amount = product.price * qty;
-    const rules = await MerchantRule.findOne();
-
-    if (amount > rules.maxOrderValue) {
-      await AuditLog.create({
-        action: "order_blocked",
-        reason: `Order amount ₹${amount} exceeds max allowed ₹${rules.maxOrderValue}`,
-        amount,
-      });
-      return res.status(403).json({
-        blocked: true,
-        reason: `This order exceeds the ₹${rules.maxOrderValue} limit, so I can't complete it automatically.`,
-      });
-    }
-
-    const razorpay = getRazorpayInstance();
-    const rzpOrder = await razorpay.orders.create({
-      amount: amount * 100, // Razorpay expects paise
-      currency: "INR",
-      receipt: `rcpt_${Date.now()}`,
-    });
-
-    const order = await Order.create({
-      razorpayOrderId: rzpOrder.id,
-      items: [{ productId: product._id, name: product.name, price: product.price, qty }],
-      amount,
-      status: "created",
-    });
-
-    await AuditLog.create({
-      action: "order_created",
-      reason: `Order created for ${product.name} x${qty}`,
-      orderRef: order._id,
-      amount,
-    });
-
-    res.json({
-      razorpayOrderId: rzpOrder.id,
-      amount: amount * 100,
-      keyId: process.env.RAZORPAY_KEY_ID,
-      dbOrderId: order._id,
-    });
+    const result = await createOrderForItems([{ productId, qty }]);
+    if (result.blocked) return res.status(403).json(result);
+    res.json(result);
   } catch (err) {
     console.error("Order creation failed:", err);
     res.status(500).json({ error: "Failed to create order" });

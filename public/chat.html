@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Panya — Shopping Assistant</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+    #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; }
+    .msg { margin: 8px 0; }
+    .user { text-align: right; color: #333; }
+    .bot { text-align: left; color: #0066cc; }
+    #upsellBox { display: none; background: #f5f5f5; padding: 10px; margin-bottom: 10px; }
+    input { width: 70%; padding: 8px; }
+    button { padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h2>Panya — Shopping Assistant</h2>
+  <div id="messages"></div>
+  <div id="upsellBox"></div>
+  <input id="input" placeholder="Say what you want to buy..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    let lastMatch = null;
+
+    function addMessage(text, sender) {
+      const div = document.createElement("div");
+      div.className = "msg " + sender;
+      div.textContent = text;
+      document.getElementById("messages").appendChild(div);
+      div.scrollIntoView();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("input");
+      const message = input.value.trim();
+      if (!message) return;
+      addMessage(message, "user");
+      input.value = "";
+
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await res.json();
+      addMessage(data.reply, "bot");
+
+      lastMatch = data;
+
+      const upsellBox = document.getElementById("upsellBox");
+      if (data.upsell) {
+        upsellBox.style.display = "block";
+        upsellBox.innerHTML = `
+          Add ${data.upsell.name} for ₹${data.upsell.price}?
+          <button onclick="confirmOrder(true)">Yes, add it</button>
+          <button onclick="confirmOrder(false)">No, just checkout</button>
+        `;
+      } else if (data.matchedProductId) {
+        upsellBox.style.display = "block";
+        upsellBox.innerHTML = `<button onclick="confirmOrder(false)">Proceed to pay</button>`;
+      } else {
+        upsellBox.style.display = "none";
+      }
+    }
+
+    async function confirmOrder(includeUpsell) {
+      if (!lastMatch || !lastMatch.matchedProductId) return;
+
+      const res = await fetch("/chat/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: lastMatch.matchedProductId,
+          qty: lastMatch.qty,
+          includeUpsell,
+          upsellProductId: lastMatch.upsell ? lastMatch.upsell.id : null,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.blocked) {
+        addMessage(data.reason, "bot");
+        return;
+      }
+
+      document.getElementById("upsellBox").style.display = "none";
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: "INR",
+        order_id: data.razorpayOrderId,
+        name: "Panya",
+        handler: async function (response) {
+          const verifyRes = await fetch("/order/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response),
+          });
+          const verifyData = await verifyRes.json();
+          addMessage(
+            verifyData.success ? "Payment successful! Thank you." : "Payment could not be verified.",
+            "bot"
+          );
+        },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+  </script>
+</body>
+</html>

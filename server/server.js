@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import ordersRouter from "./routes/orders.js";
+import chatRouter from "./routes/chat.js";
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/order", ordersRouter);
+app.use("/chat", chatRouter);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
