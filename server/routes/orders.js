@@ -129,4 +129,25 @@ router.post("/verify", async (req, res) => {
   }
 });
 
+router.get("/catalog", async (req, res) => {
+  const products = await Product.find();
+  res.json({
+    merchant: "Panya Store",
+    currency: "INR",
+    updatedAt: new Date().toISOString(),
+    items: products.map((p) => ({
+      id: p._id,
+      name: p.name,
+      price: p.price,
+      category: p.category,
+      style: p.style,
+      color: p.color,
+      material: p.material,
+      description: p.description,
+      inStock: p.stock > 0,
+      stock: p.stock,
+    })),
+  });
+});
+
 export default router;
