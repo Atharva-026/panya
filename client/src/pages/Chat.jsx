@@ -1,17 +1,25 @@
 import { useState, useRef, useEffect } from "react";
-import { sendChatMessage, confirmOrder, verifyPayment } from "../api/client";
+import { sendChatMessage, confirmOrder, verifyPayment, fetchMerchantRules } from "../api/client";
 import "./Chat.css";
 
 function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [pendingMatch, setPendingMatch] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    fetchMerchantRules().then(setRules);
+  }, []);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pendingMatch]);
+  }, [messages, pendingMatch, cart]);
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   async function handleSend() {
     const text = input.trim();
@@ -27,25 +35,63 @@ function Chat() {
     setLoading(false);
   }
 
-  async function handleConfirm(includeUpsell) {
+  function addToCart(productId, name, price, qty) {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.productId === productId);
+      if (existing) {
+        return prev.map((i) =>
+          i.productId === productId ? { ...i, qty: i.qty + qty } : i
+        );
+      }
+      return [...prev, { productId, name, price, qty }];
+    });
+    setPendingMatch(null);
+  }
+
+  function handleAddMain() {
     if (!pendingMatch) return;
+    addToCart(pendingMatch.matchedProductId, extractMainName(pendingMatch.reply), null, pendingMatch.qty);
+  }
+
+  // We don't have the main product's price/name directly from /chat response,
+  // so we add both main + upsell together when confirmed via checkout instead.
+  // Simplify: "Add to cart" adds main item using data we already have from pendingMatch.
+
+  function handleAddPending(includeUpsell) {
+    if (!pendingMatch) return;
+    addToCart(
+      pendingMatch.matchedProductId,
+      pendingMatch.matchedName,
+      pendingMatch.matchedPrice,
+      pendingMatch.qty
+    );
+    if (includeUpsell && pendingMatch.upsell) {
+      addToCart(
+        pendingMatch.upsell.id,
+        pendingMatch.upsell.name,
+        pendingMatch.upsell.price,
+        1
+      );
+    }
+    setPendingMatch(null);
+  }
+
+  function removeFromCart(productId) {
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  }
+
+  async function handleCheckout() {
+    if (cart.length === 0) return;
     setLoading(true);
 
-    const result = await confirmOrder({
-      productId: pendingMatch.matchedProductId,
-      qty: pendingMatch.qty,
-      includeUpsell,
-      upsellProductId: pendingMatch.upsell ? pendingMatch.upsell.id : null,
-    });
+    const items = cart.map((i) => ({ productId: i.productId, qty: i.qty }));
+    const result = await confirmOrder(items);
 
     if (result.blocked) {
       setMessages((prev) => [...prev, { role: "assistant", text: result.reason }]);
-      setPendingMatch(null);
       setLoading(false);
       return;
     }
-
-    setPendingMatch(null);
 
     const options = {
       key: result.keyId,
@@ -64,6 +110,7 @@ function Chat() {
               : "Payment could not be verified.",
           },
         ]);
+        setCart([]);
       },
       modal: {
         ondismiss: () => setLoading(false),
@@ -79,6 +126,8 @@ function Chat() {
     if (e.key === "Enter") handleSend();
   }
 
+  const withinLimit = rules && cartTotal <= rules.maxOrderValue;
+
   return (
     <div className="chat-page">
       <div className="chat-header">Panya</div>
@@ -92,27 +141,50 @@ function Chat() {
 
         {pendingMatch && (
           <div className="upsell-card">
-            {pendingMatch.upsell ? (
-              <>
-                <p>Add {pendingMatch.upsell.name} for ₹{pendingMatch.upsell.price}?</p>
-                {pendingMatch.upsellReason && (
-                  <p className="upsell-reason">{pendingMatch.upsellReason}</p>
-                )}
-                <div className="upsell-actions">
-                  <button onClick={() => handleConfirm(true)}>Add and checkout</button>
-                  <button onClick={() => handleConfirm(false)} className="secondary">
-                    Just checkout
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button onClick={() => handleConfirm(false)}>Proceed to checkout</button>
+            <p>{pendingMatch.reply}</p>
+            {pendingMatch.upsell && (
+              <p className="upsell-reason">
+                Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
+              </p>
             )}
+            <div className="upsell-actions">
+              <button onClick={() => handleAddPending(false)}>Add item</button>
+              {pendingMatch.upsell && (
+                <button onClick={() => handleAddPending(true)}>Add item + suggestion</button>
+              )}
+            </div>
           </div>
         )}
 
         <div ref={bottomRef} />
       </div>
+
+      {cart.length > 0 && (
+        <div className="cart-card">
+          <div className="cart-title">Your order</div>
+          {cart.map((item) => (
+            <div key={item.productId} className="cart-row">
+              <span>{item.name} × {item.qty}</span>
+              <span>₹{item.price * item.qty}</span>
+              <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>Remove</button>
+            </div>
+          ))}
+          <div className="cart-total-row">
+            <span>Total</span>
+            <span>₹{cartTotal}</span>
+          </div>
+          {rules && (
+            <div className={`rule-tag ${withinLimit ? "ok" : "blocked"}`}>
+              {withinLimit
+                ? `Within max order limit (₹${rules.maxOrderValue})`
+                : `Exceeds max order limit (₹${rules.maxOrderValue}) — will be blocked`}
+            </div>
+          )}
+          <button className="checkout-btn" onClick={handleCheckout} disabled={loading}>
+            Checkout
+          </button>
+        </div>
+      )}
 
       <div className="chat-input-bar">
         <input

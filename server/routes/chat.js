@@ -121,6 +121,8 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
     res.json({
       reply: parsed.reply,
       matchedProductId: parsed.matchedProductId,
+      matchedName: matchedProduct ? matchedProduct.name : null,
+      matchedPrice: matchedProduct ? matchedProduct.price : null,
       qty: parsed.qty,
       upsell,
       upsellReason,
@@ -133,12 +135,9 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
 
 router.post("/confirm", async (req, res) => {
   try {
-    const { productId, qty = 1, includeUpsell = false, upsellProductId } = req.body || {};
-    if (!productId) return res.status(400).json({ error: "productId is required" });
-
-    const items = [{ productId, qty }];
-    if (includeUpsell && upsellProductId) {
-      items.push({ productId: upsellProductId, qty: 1 });
+    const { items } = req.body || {};
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "items array is required" });
     }
 
     const result = await createOrderForItems(items);

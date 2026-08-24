@@ -5,6 +5,11 @@ import MerchantRule from "../models/MerchantRule.js";
 
 const router = express.Router();
 
+router.get("/rules", async (req, res) => {
+  const rules = await MerchantRule.findOne();
+  res.json(rules);
+});
+
 router.get("/dashboard", async (req, res) => {
   try {
     const paidOrders = await Order.find({ status: "paid" });

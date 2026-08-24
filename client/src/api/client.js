@@ -7,11 +7,11 @@ export async function sendChatMessage(message) {
   return res.json();
 }
 
-export async function confirmOrder({ productId, qty, includeUpsell, upsellProductId }) {
+export async function confirmOrder(items) {
   const res = await fetch("/chat/confirm", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ productId, qty, includeUpsell, upsellProductId }),
+    body: JSON.stringify({ items }),
   });
   return res.json();
 }
@@ -27,5 +27,10 @@ export async function verifyPayment(paymentResponse) {
 
 export async function fetchMerchantDashboard() {
   const res = await fetch("/merchant/dashboard");
+  return res.json();
+}
+
+export async function fetchMerchantRules() {
+  const res = await fetch("/merchant/rules");
   return res.json();
 }
