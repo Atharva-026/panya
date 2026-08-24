@@ -141,11 +141,23 @@ function Chat() {
 
         {pendingMatch && (
           <div className="upsell-card">
-            <p>{pendingMatch.reply}</p>
+            <div className="product-preview">
+              {pendingMatch.matchedImageUrl && (
+                <img src={pendingMatch.matchedImageUrl} alt={pendingMatch.matchedName} className="product-thumb" />
+              )}
+              <div>
+                <p>{pendingMatch.reply}</p>
+              </div>
+            </div>
             {pendingMatch.upsell && (
-              <p className="upsell-reason">
-                Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
-              </p>
+              <div className="product-preview upsell-preview">
+                {pendingMatch.upsell.imageUrl && (
+                  <img src={pendingMatch.upsell.imageUrl} alt={pendingMatch.upsell.name} className="product-thumb small" />
+                )}
+                <p className="upsell-reason">
+                  Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
+                </p>
+              </div>
             )}
             <div className="upsell-actions">
               <button onClick={() => handleAddPending(false)}>Add item</button>

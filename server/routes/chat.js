@@ -111,6 +111,7 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
               id: upsellProduct._id,
               name: upsellProduct.name,
               price: upsellProduct.price,
+              imageUrl: upsellProduct.imageUrl,
             };
             upsellReason = upsellResult.reason;
           }
@@ -123,6 +124,7 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
       matchedProductId: parsed.matchedProductId,
       matchedName: matchedProduct ? matchedProduct.name : null,
       matchedPrice: matchedProduct ? matchedProduct.price : null,
+      matchedImageUrl: matchedProduct ? matchedProduct.imageUrl : null,
       qty: parsed.qty,
       upsell,
       upsellReason,

@@ -199,3 +199,28 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.product-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.product-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.product-thumb.small {
+  width: 48px;
+  height: 48px;
+}
+
+.upsell-preview {
+  padding-top: 6px;
+  border-top: 1px solid #eee;
+}
