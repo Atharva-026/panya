@@ -95,6 +95,9 @@ function Chat() {
             {pendingMatch.upsell ? (
               <>
                 <p>Add {pendingMatch.upsell.name} for ₹{pendingMatch.upsell.price}?</p>
+                {pendingMatch.upsellReason && (
+                  <p className="upsell-reason">{pendingMatch.upsellReason}</p>
+                )}
                 <div className="upsell-actions">
                   <button onClick={() => handleConfirm(true)}>Add and checkout</button>
                   <button onClick={() => handleConfirm(false)} className="secondary">

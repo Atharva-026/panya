@@ -1,13 +1,50 @@
 import express from "express";
 import Groq from "groq-sdk";
 import Product from "../models/Product.js";
-import { getUpsellSuggestion } from "../utils/upsell.js";
 import { createOrderForItems } from "./orders.js";
 
 const router = express.Router();
 
 function getGroqClient() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY });
+}
+
+async function getReasonedUpsell(matchedProduct, allProducts, groq) {
+  const candidates = allProducts.filter(
+    (p) => p._id.toString() !== matchedProduct._id.toString()
+  );
+
+  const candidateText = candidates
+    .map(
+      (p) =>
+        `- ${p.name} (id: ${p._id}, ₹${p.price}, category: ${p.category}, style: ${p.style}, ${p.description})`
+    )
+    .join("\n");
+
+  const prompt = `A customer just bought: ${matchedProduct.name} (${matchedProduct.description}).
+
+Here are other items currently in stock:
+${candidateText}
+
+Suggest ONE genuinely complementary item from the list above that pairs naturally with what they bought — something a real salesperson would suggest, not just same-category. If nothing fits well, say so.
+
+Reply ONLY in strict JSON, no extra text:
+{
+  "upsellProductId": "the _id of your suggestion, or null if nothing fits",
+  "reason": "one short sentence explaining why this pairs well"
+}`;
+
+  const completion = await groq.chat.completions.create({
+    model: "openai/gpt-oss-120b",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.4,
+  });
+
+  try {
+    return JSON.parse(completion.choices[0].message.content);
+  } catch {
+    return { upsellProductId: null, reason: "" };
+  }
 }
 
 router.post("/", async (req, res) => {
@@ -59,11 +96,25 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
 
     let matchedProduct = null;
     let upsell = null;
+    let upsellReason = "";
 
     if (parsed.matchedProductId) {
       matchedProduct = await Product.findById(parsed.matchedProductId);
       if (matchedProduct) {
-        upsell = await getUpsellSuggestion(matchedProduct, Product);
+        const allProducts = await Product.find();
+        const upsellResult = await getReasonedUpsell(matchedProduct, allProducts, groq);
+
+        if (upsellResult.upsellProductId) {
+          const upsellProduct = await Product.findById(upsellResult.upsellProductId);
+          if (upsellProduct) {
+            upsell = {
+              id: upsellProduct._id,
+              name: upsellProduct.name,
+              price: upsellProduct.price,
+            };
+            upsellReason = upsellResult.reason;
+          }
+        }
       }
     }
 
@@ -71,9 +122,8 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
       reply: parsed.reply,
       matchedProductId: parsed.matchedProductId,
       qty: parsed.qty,
-      upsell: upsell
-        ? { id: upsell._id, name: upsell.name, price: upsell.price }
-        : null,
+      upsell,
+      upsellReason,
     });
   } catch (err) {
     console.error("Chat failed:", err);

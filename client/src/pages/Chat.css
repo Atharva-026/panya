@@ -59,6 +59,13 @@
   color: #1a1a1a;
 }
 
+.upsell-reason {
+  font-size: 13px;
+  color: #777;
+  margin-top: -6px;
+  margin-bottom: 12px;
+}
+
 .upsell-actions {
   display: flex;
   gap: 8px;
