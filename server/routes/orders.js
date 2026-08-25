@@ -15,6 +15,27 @@ function getRazorpayInstance() {
   });
 }
 
+async function getTodaySpend(userId, customerEmail) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const query = {
+    status: "paid",
+    createdAt: { $gte: startOfDay },
+  };
+
+  if (userId) {
+    query.userId = userId;
+  } else if (customerEmail) {
+    query.customerEmail = customerEmail;
+  } else {
+    return 0;
+  }
+
+  const orders = await Order.find(query);
+  return orders.reduce((sum, order) => sum + order.amount, 0);
+}
+
 export async function createOrderForItems(items, customer = {}, userId = null) {
   const rules = await MerchantRule.findOne();
   let amount = 0;
@@ -36,6 +57,20 @@ export async function createOrderForItems(items, customer = {}, userId = null) {
     return {
       blocked: true,
       reason: `This order exceeds the ₹${rules.maxOrderValue} limit, so I can't complete it automatically.`,
+    };
+  }
+
+  const todaySpend = await getTodaySpend(userId, customer.email);
+  if (todaySpend + amount > rules.dailySpendCap) {
+    const remaining = Math.max(0, rules.dailySpendCap - todaySpend);
+    await AuditLog.create({
+      action: "order_blocked",
+      reason: `Order would bring today's spend to ₹${todaySpend + amount}, exceeding the daily cap of ₹${rules.dailySpendCap}`,
+      amount,
+    });
+    return {
+      blocked: true,
+      reason: `You've already spent ₹${todaySpend} today. This order would exceed your daily limit of ₹${rules.dailySpendCap} — you have ₹${remaining} remaining today.`,
     };
   }
 

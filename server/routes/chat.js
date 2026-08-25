@@ -66,14 +66,16 @@ router.post("/", async (req, res) => {
 ${catalogText}
 
 The customer will describe what they want in plain language. Your job:
-1. Identify which product (if any) matches their request from the catalog above.
-2. Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
+1. Try to find an exact or close match in the catalog above.
+2. If nothing matches exactly, think about what they're actually looking for (occasion, style, category, use-case) and suggest the CLOSEST reasonable alternative from the catalog — the way a good salesperson would redirect a customer, not just say "we don't have that."
+3. Only say nothing is available if genuinely nothing in the catalog is even a reasonable substitute.
+
+Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
 {
-  "reply": "a short, friendly natural-language response to the customer",
-  "matchedProductId": "the _id of the matched product, or null if no match",
+  "reply": "a short, friendly natural-language response to the customer — if suggesting an alternative, briefly explain why it's a good substitute",
+  "matchedProductId": "the _id of the matched or suggested product, or null if truly nothing fits",
   "qty": 1
-}
-If nothing in the catalog matches, set matchedProductId to null and explain that in the reply.`;
+}`;
 
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-120b",
