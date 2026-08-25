@@ -20,7 +20,7 @@ function Landing() {
           <button className="primary" onClick={() => navigate("/chat")}>
             Try the assistant
           </button>
-          <button className="secondary" onClick={() => navigate("/dashboard")}>
+          <button className="secondary" onClick={() => navigate("/merchant")}>
             View merchant dashboard
           </button>
         </div>

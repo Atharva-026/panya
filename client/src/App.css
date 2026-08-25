@@ -11,3 +11,14 @@
   font-size: 14px;
   font-weight: 500;
 }
+
+.logout-btn {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 13px;
+  cursor: pointer;
+}

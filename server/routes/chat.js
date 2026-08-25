@@ -142,10 +142,11 @@ router.post("/confirm", async (req, res) => {
       return res.status(400).json({ error: "items array is required" });
     }
 
+    const userId = req.user ? req.user._id : null;
     const result = await createOrderForItems(items, {
       name: customerName,
       email: customerEmail,
-    });
+    }, userId);
     if (result.blocked) return res.status(403).json(result);
     res.json(result);
   } catch (err) {

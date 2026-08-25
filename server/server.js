@@ -16,6 +16,7 @@ import cors from "cors";
 import ordersRouter from "./routes/orders.js";
 import chatRouter from "./routes/chat.js";
 import merchantRouter from "./routes/merchant.js";
+import userRouter from "./routes/user.js";
 
 const app = express();
 app.use(cors({
@@ -46,6 +47,7 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/order", ordersRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/merchant", merchantRouter);
+app.use("/api/user", userRouter);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

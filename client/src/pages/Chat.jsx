@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { sendChatMessage, confirmOrder, verifyPayment, fetchMerchantRules } from "../api/client";
+import { sendChatMessage, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
 import "./Chat.css";
 
 function Chat() {
@@ -15,6 +15,19 @@ function Chat() {
 
   useEffect(() => {
     fetchMerchantRules().then(setRules);
+  }, []);
+
+  useEffect(() => {
+    const guest = sessionStorage.getItem("panya_guest");
+    if (guest) {
+      setCustomer(JSON.parse(guest));
+    } else {
+      checkAuth().then((data) => {
+        if (data.authenticated) {
+          setCustomer({ name: data.user.name, email: data.user.email });
+        }
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -150,7 +163,10 @@ function Chat() {
 
   return (
     <div className="chat-page">
-      <div className="chat-header">Panya</div>
+      <div className="chat-header">
+        Panya
+        {customer.name && <span className="chat-header-user"> · {customer.name}</span>}
+      </div>
 
       <div className="chat-messages">
         {messages.map((m, i) => (

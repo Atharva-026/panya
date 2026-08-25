@@ -15,7 +15,7 @@ function getRazorpayInstance() {
   });
 }
 
-export async function createOrderForItems(items, customer = {}) {
+export async function createOrderForItems(items, customer = {}, userId = null) {
   const rules = await MerchantRule.findOne();
   let amount = 0;
   const orderItems = [];
@@ -54,6 +54,7 @@ export async function createOrderForItems(items, customer = {}) {
     isUpsell: items.length > 1,
     customerName: customer.name || "",
     customerEmail: customer.email || "",
+    userId,
   });
 
   await AuditLog.create({

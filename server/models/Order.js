@@ -9,6 +9,7 @@ const orderSchema = new mongoose.Schema({
   isUpsell: { type: Boolean, default: false },
   customerName: { type: String, default: "" },
   customerEmail: { type: String, default: "" },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
 });
 
