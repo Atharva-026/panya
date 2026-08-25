@@ -137,12 +137,15 @@ If nothing in the catalog matches, set matchedProductId to null and explain that
 
 router.post("/confirm", async (req, res) => {
   try {
-    const { items } = req.body || {};
+    const { items, customerName = "", customerEmail = "" } = req.body || {};
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "items array is required" });
     }
 
-    const result = await createOrderForItems(items);
+    const result = await createOrderForItems(items, {
+      name: customerName,
+      email: customerEmail,
+    });
     if (result.blocked) return res.status(403).json(result);
     res.json(result);
   } catch (err) {

@@ -7,6 +7,8 @@ const orderSchema = new mongoose.Schema({
   amount: Number,
   status: { type: String, enum: ["created", "paid", "failed", "blocked"], default: "created" },
   isUpsell: { type: Boolean, default: false },
+  customerName: { type: String, default: "" },
+  customerEmail: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
 });
 

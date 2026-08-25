@@ -15,7 +15,7 @@ function getRazorpayInstance() {
   });
 }
 
-export async function createOrderForItems(items) {
+export async function createOrderForItems(items, customer = {}) {
   const rules = await MerchantRule.findOne();
   let amount = 0;
   const orderItems = [];
@@ -52,6 +52,8 @@ export async function createOrderForItems(items) {
     amount,
     status: "created",
     isUpsell: items.length > 1,
+    customerName: customer.name || "",
+    customerEmail: customer.email || "",
   });
 
   await AuditLog.create({
@@ -76,10 +78,10 @@ router.get("/products", async (req, res) => {
 
 router.post("/create", async (req, res) => {
   try {
-    const { productId, qty = 1 } = req.body || {};
+    const { productId, qty = 1, customer = {} } = req.body || {};
     if (!productId) return res.status(400).json({ error: "productId is required" });
 
-    const result = await createOrderForItems([{ productId, qty }]);
+    const result = await createOrderForItems([{ productId, qty }], customer);
     if (result.blocked) return res.status(403).json(result);
     res.json(result);
   } catch (err) {

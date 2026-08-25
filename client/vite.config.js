@@ -5,9 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/chat': 'http://localhost:3001',
-      '/order': 'http://localhost:3001',
-      '/merchant': 'http://localhost:3001',
+      '/api': 'http://localhost:3001',
     },
   },
 })

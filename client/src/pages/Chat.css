@@ -200,6 +200,46 @@
   cursor: not-allowed;
 }
 
+.customer-form-card {
+  margin: 0 24px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.customer-form-card p {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #1a1a1a;
+}
+
+.customer-form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customer-form-card input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  font-size: 14px;
+}
+
+.customer-form-card input:focus {
+  border-color: #1a1a1a;
+}
+
+.customer-form-card button {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #1a1a1a;
+  color: #ffffff;
+  cursor: pointer;
+}
+
 .product-preview {
   display: flex;
   align-items: center;

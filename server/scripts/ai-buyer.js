@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import Groq from "groq-sdk";
 dotenv.config();
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "http://localhost:3001/api";
 const BUYER_GOAL = process.argv[2] || "I need something for a formal wedding, budget conscious";
 
 async function run() {

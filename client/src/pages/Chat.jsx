@@ -9,6 +9,8 @@ function Chat() {
   const [cart, setCart] = useState([]);
   const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [customer, setCustomer] = useState({ name: "", email: "" });
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -82,10 +84,20 @@ function Chat() {
 
   async function handleCheckout() {
     if (cart.length === 0) return;
+
+    if (!customer.name || !customer.email) {
+      setShowCustomerForm(true);
+      return;
+    }
+
+    await placeOrder();
+  }
+
+  async function placeOrder() {
     setLoading(true);
 
     const items = cart.map((i) => ({ productId: i.productId, qty: i.qty }));
-    const result = await confirmOrder(items);
+    const result = await confirmOrder(items, customer);
 
     if (result.blocked) {
       setMessages((prev) => [...prev, { role: "assistant", text: result.reason }]);
@@ -99,6 +111,7 @@ function Chat() {
       currency: "INR",
       order_id: result.razorpayOrderId,
       name: "Panya",
+      prefill: { name: customer.name, email: customer.email },
       handler: async (response) => {
         const verifyResult = await verifyPayment(response);
         setMessages((prev) => [
@@ -106,7 +119,7 @@ function Chat() {
           {
             role: "assistant",
             text: verifyResult.success
-              ? "Payment successful. Your order is confirmed."
+              ? `Payment successful. A receipt has been sent to ${customer.email}.`
               : "Payment could not be verified.",
           },
         ]);
@@ -120,6 +133,13 @@ function Chat() {
     const rzp = new window.Razorpay(options);
     rzp.open();
     setLoading(false);
+  }
+
+  function handleCustomerSubmit(e) {
+    e.preventDefault();
+    if (!customer.name || !customer.email) return;
+    setShowCustomerForm(false);
+    placeOrder();
   }
 
   function handleKeyDown(e) {
@@ -195,6 +215,26 @@ function Chat() {
           <button className="checkout-btn" onClick={handleCheckout} disabled={loading}>
             Checkout
           </button>
+        </div>
+      )}
+
+      {showCustomerForm && (
+        <div className="customer-form-card">
+          <p>Where should we send your receipt?</p>
+          <form onSubmit={handleCustomerSubmit}>
+            <input
+              placeholder="Your name"
+              value={customer.name}
+              onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+            />
+            <input
+              type="email"
+              placeholder="Your email"
+              value={customer.email}
+              onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+            />
+            <button type="submit">Continue to payment</button>
+          </form>
         </div>
       )}
 
