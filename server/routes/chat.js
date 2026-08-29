@@ -14,6 +14,13 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const LANGUAGE_NAMES = {
+  en: "English",
+  hi: "Hindi",
+  mr: "Marathi",
+  kn: "Kannada",
+};
+
 function getGroqClient() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY });
 }
@@ -88,7 +95,7 @@ router.post("/voice", upload.single("audio"), async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { message } = req.body || {};
+    const { message, language = "en" } = req.body || {};
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -100,18 +107,21 @@ router.post("/", async (req, res) => {
       .join("\n");
 
     const groq = getGroqClient();
+    const languageName = LANGUAGE_NAMES[language] || "English";
 
     const systemPrompt = `You are a shopping assistant for a store. Here is the current catalog:
 ${catalogText}
 
-The customer will describe what they want in plain language. Your job:
+The customer will describe what they want in plain language, in any language. Your job:
 1. Try to find an exact or close match in the catalog above.
 2. If nothing matches exactly, think about what they're actually looking for (occasion, style, category, use-case) and suggest the CLOSEST reasonable alternative from the catalog — the way a good salesperson would redirect a customer, not just say "we don't have that."
 3. Only say nothing is available if genuinely nothing in the catalog is even a reasonable substitute.
 
+CRITICAL LANGUAGE RULE: The "reply" field must be written ENTIRELY in ${languageName}, using ${languageName} script — regardless of what language the customer typed in. This is non-negotiable. The only exception is product names, which stay in English (e.g. "Red Running Shoe") even inside an otherwise ${languageName} sentence.
+
 Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
 {
-  "reply": "a short, friendly natural-language response to the customer — if suggesting an alternative, briefly explain why it's a good substitute",
+  "reply": "a short, friendly natural-language response to the customer, written entirely in ${languageName} — if suggesting an alternative, briefly explain why it's a good substitute",
   "matchedProductId": "the _id of the matched or suggested product, or null if truly nothing fits",
   "qty": 1
 }`;
@@ -120,7 +130,7 @@ Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
       model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: message },
+        { role: "user", content: `${message}\n\n(Reply in ${languageName}.)` },
       ],
       temperature: 0.3,
     });

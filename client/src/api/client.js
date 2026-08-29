@@ -1,15 +1,16 @@
-export async function sendChatMessage(message) {
+export async function sendChatMessage(message, language = "en") {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, language }),
   });
   return res.json();
 }
 
-export async function transcribeVoice(audioBlob) {
+export async function transcribeVoice(audioBlob, language = "en") {
   const formData = new FormData();
   formData.append("audio", audioBlob, "voice-input.webm");
+  formData.append("language", language);
 
   const res = await fetch("/api/chat/voice", {
     method: "POST",

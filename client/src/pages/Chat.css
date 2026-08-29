@@ -171,6 +171,22 @@
   justify-content: center;
 }
 
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lang-select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .mic-btn.recording {
   background: #ff3b30;
   color: #ffffff;

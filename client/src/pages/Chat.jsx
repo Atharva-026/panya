@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { sendChatMessage, transcribeVoice, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
+import { LANGUAGES, translations } from "../i18n";
 import "./Chat.css";
 
 const VOICE_SUPPORTED =
@@ -7,6 +8,10 @@ const VOICE_SUPPORTED =
   !!navigator.mediaDevices &&
   typeof window !== "undefined" &&
   !!window.MediaRecorder;
+
+function extractMainName(reply) {
+  return reply;
+}
 
 function Chat() {
   const [messages, setMessages] = useState([]);
@@ -19,10 +24,18 @@ function Chat() {
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [voiceOriginated, setVoiceOriginated] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem("panya_lang") || "en");
   const bottomRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
+
+  const t = translations[language] || translations.en;
+
+  useEffect(() => {
+    localStorage.setItem("panya_lang", language);
+  }, [language]);
 
   useEffect(() => {
     fetchMerchantRules().then(setRules);
@@ -60,7 +73,9 @@ function Chat() {
   function speak(text) {
     if (!text || typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = LANGUAGES.find((l) => l.code === language)?.speechLang || "en-IN";
+    window.speechSynthesis.speak(utterance);
   }
 
   async function handleSend(overrideText) {
@@ -71,11 +86,12 @@ function Chat() {
     setInput("");
     setLoading(true);
 
-    const data = await sendChatMessage(text);
+    const data = await sendChatMessage(text, language);
     setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
     setPendingMatch(data.matchedProductId ? data : null);
     setLoading(false);
-    speak(data.reply);
+    if (voiceOriginated) speak(data.reply);
+    setVoiceOriginated(false);
   }
 
   async function toggleRecording() {
@@ -105,13 +121,13 @@ function Chat() {
 
         setTranscribing(true);
         try {
-          const { text } = await transcribeVoice(audioBlob);
-          if (text) setInput(text);
+          const { text } = await transcribeVoice(audioBlob, language);
+          if (text) {
+            setInput(text);
+            setVoiceOriginated(true);
+          }
         } catch (err) {
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", text: "Didn't catch that — try again or type it." },
-          ]);
+          setMessages((prev) => [...prev, { role: "assistant", text: t.voiceTranscribeError }]);
         } finally {
           setTranscribing(false);
         }
@@ -120,10 +136,7 @@ function Chat() {
       recorder.start();
       setRecording(true);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Couldn't access the microphone — check permissions or type instead." },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", text: t.micPermissionError }]);
     }
   }
 
@@ -144,10 +157,6 @@ function Chat() {
     if (!pendingMatch) return;
     addToCart(pendingMatch.matchedProductId, extractMainName(pendingMatch.reply), null, pendingMatch.qty);
   }
-
-  // We don't have the main product's price/name directly from /chat response,
-  // so we add both main + upsell together when confirmed via checkout instead.
-  // Simplify: "Add to cart" adds main item using data we already have from pendingMatch.
 
   function handleAddPending(includeUpsell) {
     if (!pendingMatch) return;
@@ -209,8 +218,8 @@ function Chat() {
           {
             role: "assistant",
             text: verifyResult.success
-              ? `Payment successful. A receipt has been sent to ${customer.email}.`
-              : "Payment could not be verified.",
+              ? `${t.paymentSuccessPrefix} ${customer.email}.`
+              : t.paymentFailed,
           },
         ]);
         setCart([]);
@@ -218,10 +227,7 @@ function Chat() {
       modal: {
         ondismiss: () => {
           setLoading(false);
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", text: "Checkout was cancelled. Your cart is still here if you'd like to try again." },
-          ]);
+          setMessages((prev) => [...prev, { role: "assistant", text: t.checkoutCancelled }]);
         },
       },
     };
@@ -249,7 +255,18 @@ function Chat() {
       <div className="chat-main">
         <div className="chat-header">
           <div className="chat-header-title">Panya</div>
-          {customer.name && <div className="chat-header-greeting">Welcome, {customer.name}</div>}
+          <div className="chat-header-right">
+            {customer.name && <div className="chat-header-greeting">{t.welcome(customer.name)}</div>}
+            <select
+              className="lang-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="chat-messages">
@@ -273,14 +290,14 @@ function Chat() {
                     <img src={pendingMatch.upsell.imageUrl} alt={pendingMatch.upsell.name} className="product-thumb small" />
                   )}
                   <p className="upsell-reason">
-                    Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
+                    {t.suggestedPrefix} {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
                   </p>
                 </div>
               )}
               <div className="upsell-actions">
-                <button onClick={() => handleAddPending(false)}>Add item</button>
+                <button onClick={() => handleAddPending(false)}>{t.addItemBtn}</button>
                 {pendingMatch.upsell && (
-                  <button onClick={() => handleAddPending(true)}>Add item + suggestion</button>
+                  <button onClick={() => handleAddPending(true)}>{t.addItemSuggestionBtn}</button>
                 )}
               </div>
             </div>
@@ -288,11 +305,11 @@ function Chat() {
 
           {showCustomerForm && (
             <div className="customer-form-card">
-              <p>Where should we send your receipt?</p>
+              <p>{t.receiptQuestion}</p>
               <form onSubmit={handleCustomerSubmit}>
-                <input placeholder="Your name" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
-                <input type="email" placeholder="Your email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
-                <button type="submit">Continue to payment</button>
+                <input placeholder={t.namePlaceholder} value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
+                <input type="email" placeholder={t.emailPlaceholder} value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
+                <button type="submit">{t.continueToPayment}</button>
               </form>
             </div>
           )}
@@ -307,7 +324,7 @@ function Chat() {
               className={`mic-btn ${recording ? "recording" : ""}`}
               onClick={toggleRecording}
               disabled={loading || transcribing}
-              title={recording ? "Stop recording" : "Speak instead"}
+              title={recording ? t.micTooltipStop : t.micTooltipStart}
             >
               {recording ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -325,45 +342,44 @@ function Chat() {
           )}
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setVoiceOriginated(false);
+            }}
             onKeyDown={handleKeyDown}
-            placeholder={
-              transcribing ? "Listening to what you said..." : "Describe what you're looking for..."
-            }
+            placeholder={transcribing ? t.transcribingPlaceholder : t.inputPlaceholder}
             disabled={loading || recording || transcribing}
           />
           <button onClick={() => handleSend()} disabled={loading || recording || transcribing}>
-            Send
+            {t.sendBtn}
           </button>
         </div>
       </div>
 
       <div className="cart-panel">
-        <div className="cart-panel-title">Your Order</div>
+        <div className="cart-panel-title">{t.yourOrder}</div>
         {cart.length === 0 ? (
-          <div className="cart-empty">Your cart is empty</div>
+          <div className="cart-empty">{t.cartEmpty}</div>
         ) : (
           <>
             {cart.map((item) => (
               <div key={item.productId} className="cart-row">
                 <span>{item.name} × {item.qty}</span>
                 <span>₹{item.price * item.qty}</span>
-                <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>Remove</button>
+                <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>{t.removeBtn}</button>
               </div>
             ))}
             <div className="cart-total-row">
-              <span>Total</span>
+              <span>{t.total}</span>
               <span>₹{cartTotal}</span>
             </div>
             {rules && (
               <div className={`rule-tag ${withinLimit ? "ok" : "blocked"}`}>
-                {withinLimit
-                  ? `Within max order limit (₹${rules.maxOrderValue})`
-                  : `Exceeds max order limit (₹${rules.maxOrderValue}) — will be blocked`}
+                {withinLimit ? t.withinLimit(rules.maxOrderValue) : t.exceedsLimit(rules.maxOrderValue)}
               </div>
             )}
             <button className="checkout-btn" onClick={handleCheckout} disabled={loading}>
-              Checkout
+              {t.checkoutBtn}
             </button>
           </>
         )}
