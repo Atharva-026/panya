@@ -1,9 +1,18 @@
 import express from "express";
+import multer from "multer";
 import Groq from "groq-sdk";
+import { toFile } from "groq-sdk";
 import Product from "../models/Product.js";
 import { createOrderForItems } from "./orders.js";
 
 const router = express.Router();
+
+// Voice notes are short (a few seconds of speech); 10MB is a generous ceiling
+// that still blocks abusive uploads before they reach Groq.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 function getGroqClient() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -46,6 +55,36 @@ Reply ONLY in strict JSON, no extra text:
     return { upsellProductId: null, reason: "" };
   }
 }
+
+// Voice input: transcribe audio to text only. This route never places an
+// order or calls the recommendation model — the transcript is handed back
+// to the client, which sends it through the normal /api/chat flow, so a
+// misheard word can't skip the existing add-to-cart / checkout confirmation
+// steps.
+router.post("/voice", upload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No audio file received" });
+    }
+
+    const groq = getGroqClient();
+
+    const transcription = await groq.audio.transcriptions.create({
+      file: await toFile(req.file.buffer, "voice-input.webm"),
+      model: "whisper-large-v3-turbo",
+    });
+
+    const text = (transcription.text || "").trim();
+    if (!text) {
+      return res.status(422).json({ error: "Didn't catch that — try again or type it" });
+    }
+
+    res.json({ text });
+  } catch (err) {
+    console.error("Voice transcription failed:", err);
+    res.status(502).json({ error: "Voice transcription failed — try again or type it" });
+  }
+});
 
 router.post("/", async (req, res) => {
   try {

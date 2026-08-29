@@ -1,0 +1,461 @@
+diff --git a/client/src/api/client.js b/client/src/api/client.js
+index b03e8e7..34fb14f 100644
+--- a/client/src/api/client.js
++++ b/client/src/api/client.js
+@@ -7,6 +7,23 @@ export async function sendChatMessage(message) {
+   return res.json();
+ }
+ 
++export async function transcribeVoice(audioBlob) {
++  const formData = new FormData();
++  formData.append("audio", audioBlob, "voice-input.webm");
++
++  const res = await fetch("/api/chat/voice", {
++    method: "POST",
++    body: formData,
++  });
++
++  if (!res.ok) {
++    const err = await res.json().catch(() => ({}));
++    throw new Error(err.error || "Voice transcription failed");
++  }
++
++  return res.json();
++}
++
+ export async function confirmOrder(items, customer = {}) {
+   const res = await fetch("/api/chat/confirm", {
+     method: "POST",
+diff --git a/client/src/pages/Chat.jsx b/client/src/pages/Chat.jsx
+index b844f9d..6bb1f05 100644
+--- a/client/src/pages/Chat.jsx
++++ b/client/src/pages/Chat.jsx
+@@ -1,7 +1,13 @@
+ import { useState, useRef, useEffect } from "react";
+-import { sendChatMessage, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
++import { sendChatMessage, transcribeVoice, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
+ import "./Chat.css";
+ 
++const VOICE_SUPPORTED =
++  typeof navigator !== "undefined" &&
++  !!navigator.mediaDevices &&
++  typeof window !== "undefined" &&
++  !!window.MediaRecorder;
++
+ function Chat() {
+   const [messages, setMessages] = useState([]);
+   const [input, setInput] = useState("");
+@@ -11,7 +17,12 @@ function Chat() {
+   const [loading, setLoading] = useState(false);
+   const [customer, setCustomer] = useState({ name: "", email: "" });
+   const [showCustomerForm, setShowCustomerForm] = useState(false);
++  const [recording, setRecording] = useState(false);
++  const [transcribing, setTranscribing] = useState(false);
+   const bottomRef = useRef(null);
++  const mediaRecorderRef = useRef(null);
++  const audioChunksRef = useRef([]);
++  const streamRef = useRef(null);
+ 
+   useEffect(() => {
+     fetchMerchantRules().then(setRules);
+@@ -34,10 +45,26 @@ function Chat() {
+     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+   }, [messages, pendingMatch, cart]);
+ 
++  useEffect(() => {
++    return () => {
++      mediaRecorderRef.current?.stop();
++      streamRef.current?.getTracks().forEach((track) => track.stop());
++      if (typeof window !== "undefined" && window.speechSynthesis) {
++        window.speechSynthesis.cancel();
++      }
++    };
++  }, []);
++
+   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+ 
+-  async function handleSend() {
+-    const text = input.trim();
++  function speak(text) {
++    if (!text || typeof window === "undefined" || !window.speechSynthesis) return;
++    window.speechSynthesis.cancel(); // don't let replies queue up over each other
++    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
++  }
++
++  async function handleSend(overrideText) {
++    const text = (overrideText ?? input).trim();
+     if (!text || loading) return;
+ 
+     setMessages((prev) => [...prev, { role: "user", text }]);
+@@ -48,6 +75,56 @@ function Chat() {
+     setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+     setPendingMatch(data.matchedProductId ? data : null);
+     setLoading(false);
++    speak(data.reply);
++  }
++
++  async function toggleRecording() {
++    if (recording) {
++      mediaRecorderRef.current?.stop();
++      setRecording(false);
++      return;
++    }
++
++    try {
++      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
++      streamRef.current = stream;
++      audioChunksRef.current = [];
++
++      const recorder = new MediaRecorder(stream);
++      mediaRecorderRef.current = recorder;
++
++      recorder.ondataavailable = (e) => {
++        if (e.data.size > 0) audioChunksRef.current.push(e.data);
++      };
++
++      recorder.onstop = async () => {
++        streamRef.current?.getTracks().forEach((track) => track.stop());
++        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
++
++        if (audioBlob.size === 0) return;
++
++        setTranscribing(true);
++        try {
++          const { text } = await transcribeVoice(audioBlob);
++          if (text) await handleSend(text);
++        } catch (err) {
++          setMessages((prev) => [
++            ...prev,
++            { role: "assistant", text: "Didn't catch that — try again or type it." },
++          ]);
++        } finally {
++          setTranscribing(false);
++        }
++      };
++
++      recorder.start();
++      setRecording(true);
++    } catch (err) {
++      setMessages((prev) => [
++        ...prev,
++        { role: "assistant", text: "Couldn't access the microphone — check permissions or type instead." },
++      ]);
++    }
+   }
+ 
+   function addToCart(productId, name, price, qty) {
+@@ -255,14 +332,27 @@ function Chat() {
+       )}
+ 
+       <div className="chat-input-bar">
++        {VOICE_SUPPORTED && (
++          <button
++            type="button"
++            className={`mic-btn ${recording ? "recording" : ""}`}
++            onClick={toggleRecording}
++            disabled={loading || transcribing}
++            title={recording ? "Stop recording" : "Speak instead"}
++          >
++            {recording ? "■" : "🎤"}
++          </button>
++        )}
+         <input
+           value={input}
+           onChange={(e) => setInput(e.target.value)}
+           onKeyDown={handleKeyDown}
+-          placeholder="Describe what you're looking for..."
+-          disabled={loading}
++          placeholder={
++            transcribing ? "Listening to what you said..." : "Describe what you're looking for..."
++          }
++          disabled={loading || recording || transcribing}
+         />
+-        <button onClick={handleSend} disabled={loading}>
++        <button onClick={() => handleSend()} disabled={loading || recording || transcribing}>
+           Send
+         </button>
+       </div>
+diff --git a/server/package-lock.json b/server/package-lock.json
+index 4dd79d7..efff241 100644
+--- a/server/package-lock.json
++++ b/server/package-lock.json
+@@ -15,6 +15,7 @@
+         "express-session": "^1.19.0",
+         "groq-sdk": "^1.5.0",
+         "mongoose": "^9.9.3",
++        "multer": "^2.0.0",
+         "passport": "^0.7.0",
+         "passport-google-oauth20": "^2.0.0",
+         "razorpay": "^2.9.8"
+@@ -92,6 +93,12 @@
+         "node": ">= 8"
+       }
+     },
++    "node_modules/append-field": {
++      "version": "1.0.0",
++      "resolved": "https://registry.npmjs.org/append-field/-/append-field-1.0.0.tgz",
++      "integrity": "sha512-klpgFSWLW1ZEs8svjfb7g4qWY0YS5imI82dTg+QahUvJ8YqAY0P10Uk8tTyh9ZGuYEZEMaeJYCF5BFuX552hsw==",
++      "license": "MIT"
++    },
+     "node_modules/asynckit": {
+       "version": "0.4.0",
+       "resolved": "https://registry.npmjs.org/asynckit/-/asynckit-0.4.0.tgz",
+@@ -214,6 +221,23 @@
+         "node": ">=20.19.0"
+       }
+     },
++    "node_modules/buffer-from": {
++      "version": "1.1.2",
++      "resolved": "https://registry.npmjs.org/buffer-from/-/buffer-from-1.1.2.tgz",
++      "integrity": "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==",
++      "license": "MIT"
++    },
++    "node_modules/busboy": {
++      "version": "1.6.0",
++      "resolved": "https://registry.npmjs.org/busboy/-/busboy-1.6.0.tgz",
++      "integrity": "sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==",
++      "dependencies": {
++        "streamsearch": "^1.1.0"
++      },
++      "engines": {
++        "node": ">=10.16.0"
++      }
++    },
+     "node_modules/bytes": {
+       "version": "3.1.2",
+       "resolved": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
+@@ -289,6 +313,21 @@
+         "node": ">= 0.8"
+       }
+     },
++    "node_modules/concat-stream": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/concat-stream/-/concat-stream-2.0.0.tgz",
++      "integrity": "sha512-MWufYdFw53ccGjCA+Ol7XJYpAlW6/prSMzuPOTRnJGcGzuhLn4Scrz7qf6o8bROZ514ltazcIFJZevcfbo0x7A==",
++      "engines": [
++        "node >= 6.0"
++      ],
++      "license": "MIT",
++      "dependencies": {
++        "buffer-from": "^1.0.0",
++        "inherits": "^2.0.3",
++        "readable-stream": "^3.0.2",
++        "typedarray": "^0.0.6"
++      }
++    },
+     "node_modules/content-disposition": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/content-disposition/-/content-disposition-1.1.0.tgz",
+@@ -1140,6 +1179,68 @@
+       "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+       "license": "MIT"
+     },
++    "node_modules/multer": {
++      "version": "2.2.0",
++      "resolved": "https://registry.npmjs.org/multer/-/multer-2.2.0.tgz",
++      "integrity": "sha512-6rdyFg2kLrMh9Jee7/BMPuV9lEAd7lLW2YUpF9/YxR7njyoUwwQ0ZPh3TaIY50Sw6vlyD2HW3wGOkTS4P79xrQ==",
++      "license": "MIT",
++      "dependencies": {
++        "append-field": "^1.0.0",
++        "busboy": "^1.6.0",
++        "concat-stream": "^2.0.0",
++        "type-is": "^1.6.18"
++      },
++      "engines": {
++        "node": ">= 10.16.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/express"
++      }
++    },
++    "node_modules/multer/node_modules/media-typer": {
++      "version": "0.3.0",
++      "resolved": "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz",
++      "integrity": "sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==",
++      "license": "MIT",
++      "engines": {
++        "node": ">= 0.6"
++      }
++    },
++    "node_modules/multer/node_modules/mime-db": {
++      "version": "1.52.0",
++      "resolved": "https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz",
++      "integrity": "sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==",
++      "license": "MIT",
++      "engines": {
++        "node": ">= 0.6"
++      }
++    },
++    "node_modules/multer/node_modules/mime-types": {
++      "version": "2.1.35",
++      "resolved": "https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz",
++      "integrity": "sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==",
++      "license": "MIT",
++      "dependencies": {
++        "mime-db": "1.52.0"
++      },
++      "engines": {
++        "node": ">= 0.6"
++      }
++    },
++    "node_modules/multer/node_modules/type-is": {
++      "version": "1.6.18",
++      "resolved": "https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz",
++      "integrity": "sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==",
++      "license": "MIT",
++      "dependencies": {
++        "media-typer": "0.3.0",
++        "mime-types": "~2.1.24"
++      },
++      "engines": {
++        "node": ">= 0.6"
++      }
++    },
+     "node_modules/negotiator": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/negotiator/-/negotiator-1.1.0.tgz",
+@@ -1460,6 +1561,20 @@
+         "axios": "^1.18.1"
+       }
+     },
++    "node_modules/readable-stream": {
++      "version": "3.6.2",
++      "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-3.6.2.tgz",
++      "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
++      "license": "MIT",
++      "dependencies": {
++        "inherits": "^2.0.3",
++        "string_decoder": "^1.1.1",
++        "util-deprecate": "^1.0.1"
++      },
++      "engines": {
++        "node": ">= 6"
++      }
++    },
+     "node_modules/readdirp": {
+       "version": "3.6.0",
+       "resolved": "https://registry.npmjs.org/readdirp/-/readdirp-3.6.0.tgz",
+@@ -1688,6 +1803,23 @@
+         "node": ">= 0.8"
+       }
+     },
++    "node_modules/streamsearch": {
++      "version": "1.1.0",
++      "resolved": "https://registry.npmjs.org/streamsearch/-/streamsearch-1.1.0.tgz",
++      "integrity": "sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==",
++      "engines": {
++        "node": ">=10.0.0"
++      }
++    },
++    "node_modules/string_decoder": {
++      "version": "1.3.0",
++      "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.3.0.tgz",
++      "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
++      "license": "MIT",
++      "dependencies": {
++        "safe-buffer": "~5.2.0"
++      }
++    },
+     "node_modules/supports-color": {
+       "version": "5.5.0",
+       "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-5.5.0.tgz",
+@@ -1776,6 +1908,12 @@
+         "url": "https://opencollective.com/express"
+       }
+     },
++    "node_modules/typedarray": {
++      "version": "0.0.6",
++      "resolved": "https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz",
++      "integrity": "sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==",
++      "license": "MIT"
++    },
+     "node_modules/uid-safe": {
+       "version": "2.1.5",
+       "resolved": "https://registry.npmjs.org/uid-safe/-/uid-safe-2.1.5.tgz",
+@@ -1810,6 +1948,12 @@
+         "node": ">= 0.8"
+       }
+     },
++    "node_modules/util-deprecate": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
++      "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==",
++      "license": "MIT"
++    },
+     "node_modules/utils-merge": {
+       "version": "1.0.1",
+       "resolved": "https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz",
+diff --git a/server/package.json b/server/package.json
+index 478fa6f..27a44de 100644
+--- a/server/package.json
++++ b/server/package.json
+@@ -18,6 +18,7 @@
+     "express-session": "^1.19.0",
+     "groq-sdk": "^1.5.0",
+     "mongoose": "^9.9.3",
++    "multer": "^2.0.0",
+     "passport": "^0.7.0",
+     "passport-google-oauth20": "^2.0.0",
+     "razorpay": "^2.9.8"
+diff --git a/server/routes/chat.js b/server/routes/chat.js
+index 47a3911..7700058 100644
+--- a/server/routes/chat.js
++++ b/server/routes/chat.js
+@@ -1,10 +1,19 @@
+ import express from "express";
++import multer from "multer";
+ import Groq from "groq-sdk";
++import { toFile } from "groq-sdk";
+ import Product from "../models/Product.js";
+ import { createOrderForItems } from "./orders.js";
+ 
+ const router = express.Router();
+ 
++// Voice notes are short (a few seconds of speech); 10MB is a generous ceiling
++// that still blocks abusive uploads before they reach Groq.
++const upload = multer({
++  storage: multer.memoryStorage(),
++  limits: { fileSize: 10 * 1024 * 1024 },
++});
++
+ function getGroqClient() {
+   return new Groq({ apiKey: process.env.GROQ_API_KEY });
+ }
+@@ -47,6 +56,36 @@ Reply ONLY in strict JSON, no extra text:
+   }
+ }
+ 
++// Voice input: transcribe audio to text only. This route never places an
++// order or calls the recommendation model — the transcript is handed back
++// to the client, which sends it through the normal /api/chat flow, so a
++// misheard word can't skip the existing add-to-cart / checkout confirmation
++// steps.
++router.post("/voice", upload.single("audio"), async (req, res) => {
++  try {
++    if (!req.file) {
++      return res.status(400).json({ error: "No audio file received" });
++    }
++
++    const groq = getGroqClient();
++
++    const transcription = await groq.audio.transcriptions.create({
++      file: await toFile(req.file.buffer, "voice-input.webm"),
++      model: "whisper-large-v3-turbo",
++    });
++
++    const text = (transcription.text || "").trim();
++    if (!text) {
++      return res.status(422).json({ error: "Didn't catch that — try again or type it" });
++    }
++
++    res.json({ text });
++  } catch (err) {
++    console.error("Voice transcription failed:", err);
++    res.status(502).json({ error: "Voice transcription failed — try again or type it" });
++  }
++});
++
+ router.post("/", async (req, res) => {
+   try {
+     const { message } = req.body || {};

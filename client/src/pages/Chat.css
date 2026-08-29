@@ -158,6 +158,30 @@
   cursor: not-allowed;
 }
 
+.mic-btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-btn.recording {
+  background: #ff3b30;
+  color: #ffffff;
+  border-color: #ff3b30;
+}
+
+.mic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .cart-title {
   font-size: 14px;
   font-weight: 600;

@@ -7,6 +7,23 @@ export async function sendChatMessage(message) {
   return res.json();
 }
 
+export async function transcribeVoice(audioBlob) {
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "voice-input.webm");
+
+  const res = await fetch("/api/chat/voice", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Voice transcription failed");
+  }
+
+  return res.json();
+}
+
 export async function confirmOrder(items, customer = {}) {
   const res = await fetch("/api/chat/confirm", {
     method: "POST",

@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { sendChatMessage, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
+import { sendChatMessage, transcribeVoice, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
 import "./Chat.css";
+
+const VOICE_SUPPORTED =
+  typeof navigator !== "undefined" &&
+  !!navigator.mediaDevices &&
+  typeof window !== "undefined" &&
+  !!window.MediaRecorder;
 
 function Chat() {
   const [messages, setMessages] = useState([]);
@@ -11,7 +17,12 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState({ name: "", email: "" });
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const bottomRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     fetchMerchantRules().then(setRules);
@@ -34,10 +45,26 @@ function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pendingMatch, cart]);
 
+  useEffect(() => {
+    return () => {
+      mediaRecorderRef.current?.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  async function handleSend() {
-    const text = input.trim();
+  function speak(text) {
+    if (!text || typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  }
+
+  async function handleSend(overrideText) {
+    const text = (overrideText ?? input).trim();
     if (!text || loading) return;
 
     setMessages((prev) => [...prev, { role: "user", text }]);
@@ -48,6 +75,56 @@ function Chat() {
     setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
     setPendingMatch(data.matchedProductId ? data : null);
     setLoading(false);
+    speak(data.reply);
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      audioChunksRef.current = [];
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+
+        if (audioBlob.size === 0) return;
+
+        setTranscribing(true);
+        try {
+          const { text } = await transcribeVoice(audioBlob);
+          if (text) setInput(text);
+        } catch (err) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: "Didn't catch that — try again or type it." },
+          ]);
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Couldn't access the microphone — check permissions or type instead." },
+      ]);
+    }
   }
 
   function addToCart(productId, name, price, qty) {
@@ -224,14 +301,40 @@ function Chat() {
         </div>
 
         <div className="chat-input-bar">
+          {VOICE_SUPPORTED && (
+            <button
+              type="button"
+              className={`mic-btn ${recording ? "recording" : ""}`}
+              onClick={toggleRecording}
+              disabled={loading || transcribing}
+              title={recording ? "Stop recording" : "Speak instead"}
+            >
+              {recording ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              )}
+            </button>
+          )}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what you're looking for..."
-            disabled={loading}
+            placeholder={
+              transcribing ? "Listening to what you said..." : "Describe what you're looking for..."
+            }
+            disabled={loading || recording || transcribing}
           />
-          <button onClick={handleSend} disabled={loading}>Send</button>
+          <button onClick={() => handleSend()} disabled={loading || recording || transcribing}>
+            Send
+          </button>
         </div>
       </div>
 
