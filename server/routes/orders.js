@@ -5,6 +5,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import AuditLog from "../models/AuditLog.js";
 import MerchantRule from "../models/MerchantRule.js";
+import { sendOrderConfirmationEmail } from "../utils/email.js";
 
 const router = express.Router();
 
@@ -13,6 +14,26 @@ function getRazorpayInstance() {
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
+}
+
+export async function getOrCreateRazorpayCustomer(user) {
+  const razorpay = getRazorpayInstance();
+
+  if (user.razorpayCustomerId) {
+    return user.razorpayCustomerId;
+  }
+
+  const customer = await razorpay.customers.create({
+    name: user.name,
+    email: user.email,
+    contact: "9999999999",
+    fail_existing: 0,
+  });
+
+  user.razorpayCustomerId = customer.id;
+  await user.save();
+
+  return customer.id;
 }
 
 async function getTodaySpend(userId, customerEmail) {
@@ -106,6 +127,162 @@ export async function createOrderForItems(items, customer = {}, userId = null) {
     dbOrderId: order._id,
   };
 }
+
+export async function createPaymentLinkForItems(items, customer = {}, userId = null) {
+  const rules = await MerchantRule.findOne();
+  let amount = 0;
+  const orderItems = [];
+
+  for (const { productId, qty } of items) {
+    const product = await Product.findById(productId);
+    if (!product) throw new Error(`Product not found: ${productId}`);
+    amount += product.price * qty;
+    orderItems.push({ productId: product._id, name: product.name, price: product.price, qty });
+  }
+
+  if (amount > rules.maxOrderValue) {
+    await AuditLog.create({
+      action: "order_blocked",
+      reason: `Auto-order amount ₹${amount} exceeds max allowed ₹${rules.maxOrderValue}`,
+      amount,
+    });
+    return {
+      blocked: true,
+      reason: `This order exceeds the ₹${rules.maxOrderValue} limit, so I can't complete it automatically.`,
+    };
+  }
+
+  const razorpay = getRazorpayInstance();
+
+  let paymentLink;
+  try {
+    paymentLink = await razorpay.paymentLink.create({
+      amount: amount * 100,
+      currency: "INR",
+      accept_partial: false,
+      description: `Panya auto-order: ${orderItems.map((i) => i.name).join(", ")}`,
+      customer: {
+        name: customer.name || "Customer",
+        email: customer.email || "",
+        contact: "9876543210",
+      },
+      notify: { sms: false, email: false },
+      notes: { source: "auto-order-agent" },
+    });
+  } catch (err) {
+    console.error("Payment link creation failed:", JSON.stringify(err.error || err, null, 2));
+    throw err;
+  }
+
+  const order = await Order.create({
+    razorpayOrderId: paymentLink.id,
+    items: orderItems,
+    amount,
+    status: "created",
+    isUpsell: items.length > 1,
+    customerName: customer.name || "",
+    customerEmail: customer.email || "",
+    isAutoOrder: true,
+    userId,
+  });
+
+  await AuditLog.create({
+    action: "auto_order_link_created",
+    reason: `Agent autonomously selected and created a payment link for ${orderItems.map((i) => i.name).join(", ")}`,
+    orderRef: order._id,
+    amount,
+  });
+
+  return {
+    paymentLinkId: paymentLink.id,
+    paymentLinkUrl: paymentLink.short_url,
+    amount,
+    dbOrderId: order._id,
+  };
+}
+
+router.get("/test-customer", async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Sign in required" });
+  const customerId = await getOrCreateRazorpayCustomer(req.user);
+  res.json({ razorpayCustomerId: customerId });
+});
+
+router.post("/webhook", express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }), async (req, res) => {
+  try {
+    const signature = req.headers["x-razorpay-signature"];
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+      .update(req.rawBody)
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      return res.status(400).json({ error: "Invalid webhook signature" });
+    }
+
+    const event = req.body;
+
+    if (event.event === "payment_link.paid") {
+      const paymentLinkId = event.payload.payment_link.entity.id;
+      const paymentId = event.payload.payment.entity.id;
+
+      const order = await Order.findOneAndUpdate(
+        { razorpayOrderId: paymentLinkId },
+        { status: "paid", razorpayPaymentId: paymentId },
+        { returnDocument: "after" }
+      );
+
+      if (order) {
+        await AuditLog.create({
+          action: "payment_verified",
+          reason: `Payment confirmed via webhook for auto-order ${paymentLinkId}`,
+          orderRef: order._id,
+          amount: order.amount,
+        });
+      }
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("Webhook processing failed:", err.message);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
+});
+
+router.get("/payment-link-status/:orderId", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    if (order.status === "paid") {
+      return res.json({ status: "paid", order });
+    }
+
+    const razorpay = getRazorpayInstance();
+    const link = await razorpay.paymentLink.fetch(order.razorpayOrderId);
+
+    if (link.status === "paid") {
+      order.status = "paid";
+      order.razorpayPaymentId = link.payments?.[0]?.payment_id || "";
+      await order.save();
+
+      await AuditLog.create({
+        action: "payment_verified",
+        reason: `Payment confirmed via status check for auto-order ${order.razorpayOrderId}`,
+        orderRef: order._id,
+        amount: order.amount,
+      });
+
+      if (order.customerEmail) {
+        await sendOrderConfirmationEmail(order.customerEmail, order);
+      }
+    }
+
+    res.json({ status: link.status, order });
+  } catch (err) {
+    console.error("Payment link status check failed:", err.message);
+    res.status(500).json({ error: "Status check failed" });
+  }
+});
 
 router.get("/products", async (req, res) => {
   const products = await Product.find();

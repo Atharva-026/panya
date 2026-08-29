@@ -4,6 +4,8 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   email: { type: String, required: true },
+  razorpayCustomerId: { type: String, default: null },
+  savedPaymentToken: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

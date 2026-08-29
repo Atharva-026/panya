@@ -5,6 +5,7 @@ import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
 import Storefront from "./pages/Storefront";
 import MerchantDashboard from "./pages/MerchantDashboard";
+import Automation from "./pages/Automation";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { logout } from "./api/client";
 import "./App.css";
@@ -26,6 +27,7 @@ function Nav() {
       <Link to="/chat">Chat</Link>
       <Link to="/store">Store</Link>
       <Link to="/dashboard">Dashboard</Link>
+      <Link to="/automation">Automation</Link>
       <button className="logout-btn" onClick={handleLogout}>Logout</button>
     </nav>
   );
@@ -53,6 +55,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/automation"
+          element={
+            <ProtectedRoute>
+              <Automation />
             </ProtectedRoute>
           }
         />

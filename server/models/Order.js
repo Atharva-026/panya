@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema({
   amount: Number,
   status: { type: String, enum: ["created", "paid", "failed", "blocked"], default: "created" },
   isUpsell: { type: Boolean, default: false },
+  isAutoOrder: { type: Boolean, default: false },
   customerName: { type: String, default: "" },
   customerEmail: { type: String, default: "" },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

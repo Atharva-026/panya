@@ -1,24 +1,54 @@
-.chat-page {
+.chat-layout {
+  display: flex;
+  height: calc(100vh - 57px); /* approx nav height — adjust if needed */
+}
+
+.chat-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   max-width: 720px;
   margin: 0 auto;
   background: #ffffff;
+  min-width: 0;
+}
+
+.cart-panel {
+  width: 320px;
+  border-left: 1px solid #e5e5e5;
+  background: #fafafa;
+  padding: 20px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.cart-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.cart-empty {
+  font-size: 14px;
+  color: #999;
 }
 
 .chat-header {
-  padding: 20px 24px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.chat-header-title {
   font-size: 18px;
   font-weight: 600;
-  border-bottom: 1px solid #e5e5e5;
   color: #1a1a1a;
 }
 
-.chat-header-user {
-  font-weight: 400;
-  color: #888;
-  font-size: 15px;
+.chat-header-greeting {
+  font-size: 14px;
+  color: #777;
+  margin-top: 2px;
 }
 
 .chat-messages {
@@ -126,14 +156,6 @@
 .chat-input-bar button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.cart-card {
-  margin: 0 24px 16px;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 16px;
-  background: #fafafa;
 }
 
 .cart-title {
@@ -269,4 +291,17 @@
 .upsell-preview {
   padding-top: 6px;
   border-top: 1px solid #eee;
+}
+
+@media (max-width: 900px) {
+  .chat-layout {
+    flex-direction: column;
+  }
+
+  .cart-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e5e5e5;
+    max-height: 240px;
+  }
 }

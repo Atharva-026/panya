@@ -48,3 +48,46 @@ export async function logout() {
   const res = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
   return res.json();
 }
+
+export async function fetchAutoOrderRules() {
+  const res = await fetch("/api/auto-order/rules", { credentials: "include" });
+  return res.json();
+}
+
+export async function createAutoOrderRule(goal, budget, frequency) {
+  const res = await fetch("/api/auto-order/rules", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ goal, budget, frequency }),
+  });
+  return res.json();
+}
+
+export async function toggleAutoOrderRule(id) {
+  const res = await fetch(`/api/auto-order/rules/${id}/toggle`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  return res.json();
+}
+
+export async function deleteAutoOrderRule(id) {
+  const res = await fetch(`/api/auto-order/rules/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return res.json();
+}
+
+export async function runAutoOrderNow(id) {
+  const res = await fetch(`/api/auto-order/rules/${id}/run-now`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text);
+  }
+  return res.json();
+}

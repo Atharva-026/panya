@@ -139,7 +139,13 @@ function Chat() {
         setCart([]);
       },
       modal: {
-        ondismiss: () => setLoading(false),
+        ondismiss: () => {
+          setLoading(false);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: "Checkout was cancelled. Your cart is still here if you'd like to try again." },
+          ]);
+        },
       },
     };
 
@@ -162,109 +168,102 @@ function Chat() {
   const withinLimit = rules && cartTotal <= rules.maxOrderValue;
 
   return (
-    <div className="chat-page">
-      <div className="chat-header">
-        Panya
-        {customer.name && <span className="chat-header-user"> · {customer.name}</span>}
-      </div>
+    <div className="chat-layout">
+      <div className="chat-main">
+        <div className="chat-header">
+          <div className="chat-header-title">Panya</div>
+          {customer.name && <div className="chat-header-greeting">Welcome, {customer.name}</div>}
+        </div>
 
-      <div className="chat-messages">
-        {messages.map((m, i) => (
-          <div key={i} className={`message ${m.role}`}>
-            {m.text}
-          </div>
-        ))}
-
-        {pendingMatch && (
-          <div className="upsell-card">
-            <div className="product-preview">
-              {pendingMatch.matchedImageUrl && (
-                <img src={pendingMatch.matchedImageUrl} alt={pendingMatch.matchedName} className="product-thumb" />
-              )}
-              <div>
-                <p>{pendingMatch.reply}</p>
-              </div>
-            </div>
-            {pendingMatch.upsell && (
-              <div className="product-preview upsell-preview">
-                {pendingMatch.upsell.imageUrl && (
-                  <img src={pendingMatch.upsell.imageUrl} alt={pendingMatch.upsell.name} className="product-thumb small" />
-                )}
-                <p className="upsell-reason">
-                  Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
-                </p>
-              </div>
-            )}
-            <div className="upsell-actions">
-              <button onClick={() => handleAddPending(false)}>Add item</button>
-              {pendingMatch.upsell && (
-                <button onClick={() => handleAddPending(true)}>Add item + suggestion</button>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      {cart.length > 0 && (
-        <div className="cart-card">
-          <div className="cart-title">Your order</div>
-          {cart.map((item) => (
-            <div key={item.productId} className="cart-row">
-              <span>{item.name} × {item.qty}</span>
-              <span>₹{item.price * item.qty}</span>
-              <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>Remove</button>
+        <div className="chat-messages">
+          {messages.map((m, i) => (
+            <div key={i} className={`message ${m.role}`}>
+              {m.text}
             </div>
           ))}
-          <div className="cart-total-row">
-            <span>Total</span>
-            <span>₹{cartTotal}</span>
-          </div>
-          {rules && (
-            <div className={`rule-tag ${withinLimit ? "ok" : "blocked"}`}>
-              {withinLimit
-                ? `Within max order limit (₹${rules.maxOrderValue})`
-                : `Exceeds max order limit (₹${rules.maxOrderValue}) — will be blocked`}
+
+          {pendingMatch && (
+            <div className="upsell-card">
+              <div className="product-preview">
+                {pendingMatch.matchedImageUrl && (
+                  <img src={pendingMatch.matchedImageUrl} alt={pendingMatch.matchedName} className="product-thumb" />
+                )}
+                <p>{pendingMatch.reply}</p>
+              </div>
+              {pendingMatch.upsell && (
+                <div className="product-preview upsell-preview">
+                  {pendingMatch.upsell.imageUrl && (
+                    <img src={pendingMatch.upsell.imageUrl} alt={pendingMatch.upsell.name} className="product-thumb small" />
+                  )}
+                  <p className="upsell-reason">
+                    Suggested: {pendingMatch.upsell.name} (₹{pendingMatch.upsell.price}) — {pendingMatch.upsellReason}
+                  </p>
+                </div>
+              )}
+              <div className="upsell-actions">
+                <button onClick={() => handleAddPending(false)}>Add item</button>
+                {pendingMatch.upsell && (
+                  <button onClick={() => handleAddPending(true)}>Add item + suggestion</button>
+                )}
+              </div>
             </div>
           )}
-          <button className="checkout-btn" onClick={handleCheckout} disabled={loading}>
-            Checkout
-          </button>
-        </div>
-      )}
 
-      {showCustomerForm && (
-        <div className="customer-form-card">
-          <p>Where should we send your receipt?</p>
-          <form onSubmit={handleCustomerSubmit}>
-            <input
-              placeholder="Your name"
-              value={customer.name}
-              onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-            />
-            <input
-              type="email"
-              placeholder="Your email"
-              value={customer.email}
-              onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-            />
-            <button type="submit">Continue to payment</button>
-          </form>
-        </div>
-      )}
+          {showCustomerForm && (
+            <div className="customer-form-card">
+              <p>Where should we send your receipt?</p>
+              <form onSubmit={handleCustomerSubmit}>
+                <input placeholder="Your name" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
+                <input type="email" placeholder="Your email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
+                <button type="submit">Continue to payment</button>
+              </form>
+            </div>
+          )}
 
-      <div className="chat-input-bar">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Describe what you're looking for..."
-          disabled={loading}
-        />
-        <button onClick={handleSend} disabled={loading}>
-          Send
-        </button>
+          <div ref={bottomRef} />
+        </div>
+
+        <div className="chat-input-bar">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe what you're looking for..."
+            disabled={loading}
+          />
+          <button onClick={handleSend} disabled={loading}>Send</button>
+        </div>
+      </div>
+
+      <div className="cart-panel">
+        <div className="cart-panel-title">Your Order</div>
+        {cart.length === 0 ? (
+          <div className="cart-empty">Your cart is empty</div>
+        ) : (
+          <>
+            {cart.map((item) => (
+              <div key={item.productId} className="cart-row">
+                <span>{item.name} × {item.qty}</span>
+                <span>₹{item.price * item.qty}</span>
+                <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>Remove</button>
+              </div>
+            ))}
+            <div className="cart-total-row">
+              <span>Total</span>
+              <span>₹{cartTotal}</span>
+            </div>
+            {rules && (
+              <div className={`rule-tag ${withinLimit ? "ok" : "blocked"}`}>
+                {withinLimit
+                  ? `Within max order limit (₹${rules.maxOrderValue})`
+                  : `Exceeds max order limit (₹${rules.maxOrderValue}) — will be blocked`}
+              </div>
+            )}
+            <button className="checkout-btn" onClick={handleCheckout} disabled={loading}>
+              Checkout
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
