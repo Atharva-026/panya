@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap');
+
+:root {
+  /* Backgrounds */
+  --bg-page: #FAF6EA;
+  --bg-card: #FFFDF6;
+  --bg-subtle: #F3EDDB;
+
+  /* Borders */
+  --border: #E8E0C8;
+  --border-strong: #D8CDA8;
+
+  /* Accents */
+  --accent: #8B7FC4;
+  --accent-deep: #6F62AC;
+  --accent-soft: #E8E4F5;
+  --accent-2: #F0CF4A;
+  --accent-2-soft: #FBF0C8;
+
+  /* Text */
+  --text-primary: #2B2540;
+  --text-secondary: #5C5470;
+  --text-muted: #918A9E;
+
+  /* Status */
+  --success-bg: #E8F5EA;
+  --success-text: #1A7A3F;
+  --warning-bg: #FDF3E3;
+  --warning-text: #B26A00;
+  --danger-bg: #FBEAEA;
+  --danger-text: #B3261E;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Shadow */
+  --shadow-card: 0 1px 3px rgba(43, 37, 64, 0.06);
+  --shadow-elevated: 0 4px 16px rgba(43, 37, 64, 0.10);
+}

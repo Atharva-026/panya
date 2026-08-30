@@ -55,6 +55,17 @@ function Chat() {
   }, []);
 
   useEffect(() => {
+    if (customer.name && messages.length === 0) {
+      setMessages([
+        {
+          role: "assistant",
+          text: `Hi ${customer.name.split(" ")[0]}, what are you looking for today?`,
+        },
+      ]);
+    }
+  }, [customer.name]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pendingMatch, cart]);
 
@@ -270,6 +281,16 @@ function Chat() {
         </div>
 
         <div className="chat-messages">
+          {messages.length <= 1 && (
+            <div className="suggestion-chips">
+              {["Casual wear", "Something formal", "Workout gear", "Gift under ₹1000"].map((s) => (
+                <button key={s} className="suggestion-chip" onClick={() => handleSend(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           {messages.map((m, i) => (
             <div key={i} className={`message ${m.role}`}>
               {m.text}

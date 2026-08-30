@@ -17,8 +17,34 @@
   font-weight: 500;
 }
 
-.logout-btn {
+.nav-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+  margin-right: 8px;
+}
+
+.nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-profile-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.logout-btn {
   padding: 6px 14px;
   border-radius: 8px;
   border: 1px solid #d0d0d0;
