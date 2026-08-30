@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { sendChatMessage, transcribeVoice, confirmOrder, verifyPayment, fetchMerchantRules, checkAuth } from "../api/client";
 import { LANGUAGES, translations } from "../i18n";
 import "./Chat.css";
@@ -30,6 +31,7 @@ function Chat() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
+  const location = useLocation();
 
   const t = translations[language] || translations.en;
 
@@ -104,6 +106,13 @@ function Chat() {
     if (voiceOriginated) speak(data.reply);
     setVoiceOriginated(false);
   }
+
+  useEffect(() => {
+    if (location.state?.initialPrompt) {
+      handleSend(location.state.initialPrompt);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   async function toggleRecording() {
     if (recording) {

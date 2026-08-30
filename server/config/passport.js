@@ -4,6 +4,7 @@ dotenv.config();
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
+import { sendWelcomeEmail } from "../utils/email.js";
 
 passport.use(
   new GoogleStrategy(
@@ -15,6 +16,7 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         let user = await User.findOne({ googleId: profile.id });
+        let isNewUser = false;
 
         if (!user) {
           user = await User.create({
@@ -22,6 +24,13 @@ passport.use(
             name: profile.displayName,
             email: profile.emails[0].value,
           });
+          isNewUser = true;
+        }
+
+        if (isNewUser) {
+          sendWelcomeEmail(user.email, user.name).catch((err) =>
+            console.error("Welcome email failed:", err)
+          );
         }
 
         done(null, user);

@@ -111,6 +111,15 @@ export async function deleteProduct(id) {
   return res.json();
 }
 
+export async function sendGuestWelcome(name, email) {
+  const res = await fetch("/api/auth/guest-welcome", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email }),
+  });
+  return res.json();
+}
+
 export async function checkAuth() {
   const res = await fetch("/api/auth/me", { credentials: "include" });
   return res.json();

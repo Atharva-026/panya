@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sendGuestWelcome } from "../api/client";
 import "./SignIn.css";
 
 function SignIn() {
@@ -16,6 +17,7 @@ function SignIn() {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
     sessionStorage.setItem("panya_guest", JSON.stringify({ name, email }));
+    sendGuestWelcome(name, email).catch(() => {});
     navigate("/chat");
   }
 

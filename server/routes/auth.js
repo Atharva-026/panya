@@ -1,5 +1,6 @@
 import express from "express";
 import passport from "passport";
+import { sendWelcomeEmail } from "../utils/email.js";
 
 const router = express.Router();
 
@@ -25,6 +26,16 @@ router.post("/logout", (req, res) => {
   req.logout(() => {
     res.json({ success: true });
   });
+});
+
+router.post("/guest-welcome", (req, res) => {
+  const { name, email } = req.body || {};
+  if (!name || !email) {
+    return res.status(400).json({ error: "name and email are required" });
+  }
+
+  sendWelcomeEmail(email, name).catch((err) => console.error("Guest welcome email failed:", err));
+  res.json({ success: true });
 });
 
 export default router;
