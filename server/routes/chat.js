@@ -3,6 +3,7 @@ import multer from "multer";
 import Groq from "groq-sdk";
 import { toFile } from "groq-sdk";
 import Product from "../models/Product.js";
+import ChatQueryLog from "../models/ChatQueryLog.js";
 import { createOrderForItems } from "./orders.js";
 
 const router = express.Router();
@@ -146,6 +147,14 @@ Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
       console.error("LLM returned non-JSON:", raw);
       return res.status(502).json({ error: "Agent response could not be parsed" });
     }
+
+    // Fire-and-forget demand-gap logging — never blocks or breaks the chat
+    // response even if this fails.
+    ChatQueryLog.create({
+      message,
+      matched: !!parsed.matchedProductId,
+      matchedProductId: parsed.matchedProductId || null,
+    }).catch((err) => console.error("Chat query log failed:", err));
 
     let matchedProduct = null;
     let upsell = null;

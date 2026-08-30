@@ -3,6 +3,9 @@ import Order from "../models/Order.js";
 import AuditLog from "../models/AuditLog.js";
 import MerchantRule from "../models/MerchantRule.js";
 import Product from "../models/Product.js";
+import { getRevenueByDay, getTopProducts, getRevenueByCategory, getRestockUrgency } from "../utils/analytics.js";
+import MerchantInsight from "../models/MerchantInsight.js";
+import { generateMerchantInsight } from "../utils/insightGenerator.js";
 
 const router = express.Router();
 
@@ -89,6 +92,41 @@ router.delete("/products/:id", async (req, res) => {
   } catch (err) {
     console.error("Product deletion failed:", err);
     res.status(500).json({ error: "Failed to delete product" });
+  }
+});
+
+router.get("/analytics", async (req, res) => {
+  try {
+    const [revenueByDay, topProducts, revenueByCategory, restockUrgency] = await Promise.all([
+      getRevenueByDay(30),
+      getTopProducts(30, 5),
+      getRevenueByCategory(30),
+      getRestockUrgency(14),
+    ]);
+    res.json({ revenueByDay, topProducts, revenueByCategory, restockUrgency });
+  } catch (err) {
+    console.error("Analytics fetch failed:", err);
+    res.status(500).json({ error: "Failed to load analytics" });
+  }
+});
+
+router.get("/insights", async (req, res) => {
+  try {
+    const latest = await MerchantInsight.findOne().sort({ generatedAt: -1 });
+    res.json(latest || { narrative: [], spikeAlert: { triggered: false, message: "" }, generatedAt: null });
+  } catch (err) {
+    console.error("Insight fetch failed:", err);
+    res.status(500).json({ error: "Failed to load insights" });
+  }
+});
+
+router.post("/insights/refresh", async (req, res) => {
+  try {
+    const insight = await generateMerchantInsight();
+    res.json(insight);
+  } catch (err) {
+    console.error("Insight refresh failed:", err);
+    res.status(500).json({ error: "Failed to refresh insights" });
   }
 });
 

@@ -18,6 +18,7 @@ import chatRouter from "./routes/chat.js";
 import merchantRouter from "./routes/merchant.js";
 import userRouter from "./routes/user.js";
 import autoOrderRouter from "./routes/autoOrder.js";
+import { startInsightScheduler } from "./cron/insightCron.js";
 
 const app = express();
 app.use(cors({
@@ -53,3 +54,5 @@ app.use("/api/auto-order", autoOrderRouter);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+startInsightScheduler();

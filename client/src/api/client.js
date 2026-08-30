@@ -57,6 +57,21 @@ export async function fetchMerchantRules() {
   return res.json();
 }
 
+export async function fetchMerchantAnalytics() {
+  const res = await fetch("/api/merchant/analytics");
+  return res.json();
+}
+
+export async function fetchMerchantInsights() {
+  const res = await fetch("/api/merchant/insights");
+  return res.json();
+}
+
+export async function refreshMerchantInsights() {
+  const res = await fetch("/api/merchant/insights/refresh", { method: "POST" });
+  return res.json();
+}
+
 export async function fetchProducts() {
   const res = await fetch("/api/order/products");
   return res.json();

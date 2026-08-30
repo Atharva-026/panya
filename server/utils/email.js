@@ -34,3 +34,37 @@ Thank you for shopping with Panya.`,
     console.error("Email sending failed:", err.message);
   }
 }
+
+export async function sendSpikeAlertEmail(to, message) {
+  const mailOptions = {
+    from: `"Panya" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: "Order volume alert — Panya",
+    text: `Heads up:\n\n${message}\n\nCheck your merchant dashboard for details.`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Spike alert email sent to ${to}`);
+  } catch (err) {
+    console.error("Spike alert email failed:", err.message);
+  }
+}
+
+export async function sendMerchantDigestEmail(to, narrative) {
+  const bullets = narrative.map((line) => `- ${line}`).join("\n");
+
+  const mailOptions = {
+    from: `"Panya" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: "Your weekly Panya insights",
+    text: `Here's what's happening in your store this week:\n\n${bullets}\n\nFull details on your merchant dashboard.`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Weekly digest email sent to ${to}`);
+  } catch (err) {
+    console.error("Weekly digest email failed:", err.message);
+  }
+}
