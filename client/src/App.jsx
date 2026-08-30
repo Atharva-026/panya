@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
-import Landing from "./pages/Landing";
-import SignIn from "./pages/SignIn";
-import Chat from "./pages/Chat";
-import Dashboard from "./pages/Dashboard";
-import Storefront from "./pages/Storefront";
-import MerchantDashboard from "./pages/MerchantDashboard";
-import MerchantProducts from "./pages/MerchantProducts";
-import Automation from "./pages/Automation";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { logout, checkAuth } from "./api/client";
 import "./App.css";
+
+const Landing = lazy(() => import("./pages/Landing"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const Chat = lazy(() => import("./pages/Chat"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const MerchantDashboard = lazy(() => import("./pages/MerchantDashboard"));
+const MerchantProducts = lazy(() => import("./pages/MerchantProducts"));
+const Storefront = lazy(() => import("./pages/Storefront"));
+const Automation = lazy(() => import("./pages/Automation"));
 
 function Nav() {
   const location = useLocation();
@@ -68,37 +69,39 @@ function App() {
   return (
     <BrowserRouter>
       <Nav />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/store" element={<Storefront />} />
-        <Route path="/merchant" element={<MerchantDashboard />} />
-        <Route path="/merchant/products" element={<MerchantProducts />} />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/automation"
-          element={
-            <ProtectedRoute>
-              <Automation />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+      <Suspense fallback={<div style={{ padding: 40 }}>Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/store" element={<Storefront />} />
+          <Route path="/merchant" element={<MerchantDashboard />} />
+          <Route path="/merchant/products" element={<MerchantProducts />} />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/automation"
+            element={
+              <ProtectedRoute>
+                <Automation />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

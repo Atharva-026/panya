@@ -10,7 +10,7 @@ function SignIn() {
   const [email, setEmail] = useState("");
 
   function handleGoogleSignIn() {
-    window.location.href = "http://localhost:3001/api/auth/google";
+    window.location.href = "/api/auth/google";
   }
 
   function handleGuestSubmit(e) {

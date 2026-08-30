@@ -3,14 +3,15 @@ import passport from "passport";
 import { sendWelcomeEmail } from "../utils/email.js";
 
 const router = express.Router();
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { failureRedirect: "http://localhost:5173/signin" }),
+  passport.authenticate("google", { failureRedirect: `${FRONTEND_URL}/signin` }),
   (req, res) => {
-    res.redirect("http://localhost:5173/chat");
+    res.redirect(`${FRONTEND_URL}/chat`);
   }
 );
 
