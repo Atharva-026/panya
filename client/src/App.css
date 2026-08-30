@@ -1,37 +1,69 @@
 .top-nav {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
+  gap: 16px;
   padding: 12px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: #ffffff;
+  background: var(--bg-card);
   z-index: 10;
+  flex-wrap: wrap;
 }
 
-.top-nav a {
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-brand {
+  font-family: "Kalam", cursive;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
   text-decoration: none;
-  color: #1a1a1a;
+}
+
+.top-nav a:not(.nav-brand) {
+  text-decoration: none;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
+}
+
+.top-nav a:not(.nav-brand):hover {
+  color: var(--text-primary);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .nav-profile {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  margin-right: 8px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  max-width: 200px;
 }
 
 .nav-avatar {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: var(--accent);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -40,16 +72,31 @@
 
 .nav-profile-name {
   font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logout-btn {
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 1px solid #d0d0d0;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
   background: transparent;
-  color: #1a1a1a;
+  color: var(--text-primary);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 640px) {
+  .nav-profile-name {
+    display: none;
+  }
 }

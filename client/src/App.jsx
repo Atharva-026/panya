@@ -44,18 +44,22 @@ function Nav() {
 
   return (
     <nav className="top-nav">
-      <Link to="/">Panya</Link>
-      <Link to="/chat">Chat</Link>
-      <Link to="/store">Store</Link>
-      <Link to="/dashboard">Dashboard</Link>
-      <Link to="/automation">Automation</Link>
-      {profile.name && (
-        <div className="nav-profile">
-          <div className="nav-avatar">{initials}</div>
-          <span className="nav-profile-name">{profile.name}</span>
-        </div>
-      )}
-      <button className="logout-btn" onClick={handleLogout}>Logout</button>
+      <div className="nav-links">
+        <Link to="/" className="nav-brand">पण्य</Link>
+        <Link to="/chat">Chat</Link>
+        <Link to="/store">Store</Link>
+        <Link to="/dashboard">Dashboard</Link>
+        <Link to="/automation">Automation</Link>
+      </div>
+      <div className="nav-right">
+        {profile.name && (
+          <div className="nav-profile">
+            <div className="nav-avatar">{initials}</div>
+            <span className="nav-profile-name">{profile.name}</span>
+          </div>
+        )}
+        <button className="logout-btn" onClick={handleLogout}>Logout</button>
+      </div>
     </nav>
   );
 }

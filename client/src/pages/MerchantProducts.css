@@ -12,27 +12,33 @@
 }
 
 .add-product-btn {
-  background: #1a1a1a;
+  background: var(--accent);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 16px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.add-product-btn:hover {
+  background: var(--accent-deep);
 }
 
 .products-loading,
 .products-empty {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   padding: 24px 0;
 }
 
 .products-table-wrap {
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
 }
 
 .products-table {
@@ -44,19 +50,19 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #888;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 12px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
 }
 
 .products-table td {
   padding: 12px 16px;
   font-size: 14px;
-  color: #1a1a1a;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
 }
 
 .products-table tr:last-child td {
@@ -75,7 +81,7 @@
 }
 
 .product-thumb-sm.placeholder {
-  background: #f0f0f0;
+  background: var(--border);
 }
 
 .row-actions {
@@ -86,23 +92,31 @@
 
 .row-action-btn {
   background: none;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   padding: 5px 10px;
   font-size: 12px;
-  color: #1a1a1a;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
+.row-action-btn:hover {
+  background: var(--accent-soft);
+}
+
 .row-action-btn.danger {
-  color: #c62828;
-  border-color: #f0d0d0;
+  color: var(--danger-text);
+  border-color: var(--danger-text);
+}
+
+.row-action-btn.danger:hover {
+  background: var(--danger-bg);
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(43, 37, 64, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,19 +124,21 @@
 }
 
 .modal-card {
-  background: #ffffff;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   padding: 28px;
   width: 480px;
   max-width: 90vw;
   max-height: 85vh;
   overflow-y: auto;
+  box-shadow: var(--shadow-card);
 }
 
 .modal-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-family: "Kalam", cursive;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 20px;
 }
 
@@ -146,24 +162,25 @@
 
 .form-row label {
   font-size: 12px;
-  font-weight: 500;
-  color: #666;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .form-row input,
 .form-row textarea {
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 9px 12px;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--text-primary);
+  background: var(--bg-page);
   font-family: inherit;
 }
 
 .form-row input:focus,
 .form-row textarea:focus {
   outline: none;
-  border-color: #1a1a1a;
+  border-color: var(--accent);
 }
 
 .modal-actions {
@@ -175,23 +192,31 @@
 
 .modal-cancel-btn {
   background: none;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   padding: 9px 16px;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
+.modal-cancel-btn:hover {
+  background: var(--accent-soft);
+}
+
 .modal-save-btn {
-  background: #1a1a1a;
+  background: var(--accent);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 9px 16px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.modal-save-btn:hover:not(:disabled) {
+  background: var(--accent-deep);
 }
 
 .modal-save-btn:disabled {

@@ -72,6 +72,14 @@ export async function refreshMerchantInsights() {
   return res.json();
 }
 
+export async function fetchUserAnalytics() {
+  const guest = sessionStorage.getItem("panya_guest");
+  const email = guest ? JSON.parse(guest).email : null;
+  const url = email ? `/api/user/analytics?email=${encodeURIComponent(email)}` : "/api/user/analytics";
+  const res = await fetch(url, { credentials: "include" });
+  return res.json();
+}
+
 export async function fetchProducts() {
   const res = await fetch("/api/order/products");
   return res.json();

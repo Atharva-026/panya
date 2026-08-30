@@ -99,11 +99,11 @@ function MerchantDashboard() {
           <div className="chart-card">
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={analytics.revenueByDay}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E0C8" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#1a1a1a" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="revenue" stroke="#8B7FC4" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -116,7 +116,7 @@ function MerchantDashboard() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="unitsSold" fill="#1a1a1a" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="unitsSold" fill="#8B7FC4" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -128,7 +128,7 @@ function MerchantDashboard() {
                   <XAxis dataKey="category" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="revenue" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#8B7FC4" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
