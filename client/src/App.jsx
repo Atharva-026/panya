@@ -5,6 +5,7 @@ import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
 import Storefront from "./pages/Storefront";
 import MerchantDashboard from "./pages/MerchantDashboard";
+import MerchantProducts from "./pages/MerchantProducts";
 import Automation from "./pages/Automation";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { logout } from "./api/client";
@@ -13,7 +14,7 @@ import "./App.css";
 function Nav() {
   const location = useLocation();
   const navigate = useNavigate();
-  if (location.pathname === "/" || location.pathname === "/signin") return null;
+  if (location.pathname === "/" || location.pathname === "/signin" || location.pathname === "/merchant") return null;
 
   async function handleLogout() {
     sessionStorage.removeItem("panya_guest");
@@ -42,6 +43,7 @@ function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/store" element={<Storefront />} />
         <Route path="/merchant" element={<MerchantDashboard />} />
+        <Route path="/merchant/products" element={<MerchantProducts />} />
         <Route
           path="/chat"
           element={

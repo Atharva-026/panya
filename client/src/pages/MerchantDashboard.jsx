@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { fetchMerchantDashboard } from "../api/client";
 import "./Dashboard.css";
 
@@ -31,7 +32,15 @@ function MerchantDashboard() {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-header">Merchant Dashboard</div>
+      <div className="merchant-header">
+        <div className="merchant-header-title">Panya — Merchant View</div>
+        <Link to="/" className="merchant-exit-link">Exit to store</Link>
+      </div>
+
+      <div className="dashboard-header-row">
+        <div className="dashboard-header">Merchant Dashboard</div>
+        <a href="/merchant/products" className="manage-products-link">Manage Products →</a>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card">

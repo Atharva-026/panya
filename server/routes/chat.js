@@ -74,11 +74,13 @@ router.post("/voice", upload.single("audio"), async (req, res) => {
       return res.status(400).json({ error: "No audio file received" });
     }
 
+    const { language = "en" } = req.body || {};
     const groq = getGroqClient();
 
     const transcription = await groq.audio.transcriptions.create({
       file: await toFile(req.file.buffer, "voice-input.webm"),
       model: "whisper-large-v3-turbo",
+      language,
     });
 
     const text = (transcription.text || "").trim();
