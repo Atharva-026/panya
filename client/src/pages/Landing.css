@@ -1,69 +1,360 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap');
+
+:root {
+  --lemon: #ffe873;
+  --lemon-light: #fff6cf;
+  --lemon-deep: #f0cf4a;
+  --lavender-deep: #8b7fc4;
+  --ink: #2b2540;
+  --ink-soft: #5c5470;
+}
+
 .landing-page {
-  min-height: 100vh;
+  position: relative;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  background: linear-gradient(340deg, var(--lemon-light) 0%, var(--lemon) 45%, var(--lemon-deep) 100%);
+}
+
+/* Fabric fold bands — diagonal light/shadow strips like silk catching light */
+.landing-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.32) 0px,
+      rgba(255, 255, 255, 0.05) 60px,
+      rgba(120, 95, 30, 0.10) 130px,
+      rgba(255, 255, 255, 0.28) 200px,
+      rgba(120, 95, 30, 0.06) 280px
+    );
+  background-size: 180% 180%;
+  animation: fold-drift 22s ease-in-out infinite;
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+}
+
+/* Soft highlight pools on top of the folds for extra depth */
+.landing-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 35% at 20% 15%, rgba(255,255,255,0.5), transparent 60%),
+    radial-gradient(ellipse 45% 30% at 82% 12%, rgba(255,255,255,0.3), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 30% 75%, rgba(255,255,255,0.35), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 80%, rgba(255,255,255,0.28), transparent 55%);
+}
+
+@keyframes fold-drift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 40%; }
+  100% { background-position: 0% 0%; }
+}
+
+.landing-nav,
+.hero-section,
+.section-title,
+.feature-row,
+.landing-footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- NAVBAR ---------- */
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+}
+
+.landing-nav-logo {
+  font-family: "Kalam", cursive;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.landing-nav-links {
+  display: flex;
+  gap: 8px;
+}
+
+.landing-nav-links button {
+  background: transparent;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.landing-nav-links button:hover {
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--ink);
+}
+
+/* ---------- HERO meaning line font ---------- */
+
+.hero-meaning {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 19px;
+  color: var(--ink-soft);
+  margin-bottom: 28px;
+}
+
+/* ---------- INTRO ROW ---------- */
+
+.feature-text.wide {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.intro-row {
+  margin-bottom: 70px !important;
+}
+
+/* ---------- ICONS — no box, sit directly on background ---------- */
+
+.feature-icon-box {
+  flex-shrink: 0;
+  width: 110px;
+  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
-  padding: 24px;
 }
 
-.landing-content {
-  max-width: 560px;
+.doodle {
+  width: 72px;
+  height: 72px;
+  color: var(--lavender-deep);
+  filter: url(#roughen);
+}
+
+/* ---------- HERO ---------- */
+
+.hero-section {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.hero-content {
   text-align: center;
+  max-width: 640px;
 }
 
-.landing-name {
-  font-size: 40px;
+.hero-logo {
+  font-family: "Kalam", cursive;
   font-weight: 700;
-  color: #1a1a1a;
-  letter-spacing: -0.02em;
-  margin-bottom: 10px;
+  font-size: 72px;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.5);
+  line-height: 1;
+  margin-bottom: 8px;
 }
 
-.landing-origin {
-  font-size: 14px;
-  color: #888;
-  margin-bottom: 28px;
-  font-style: italic;
-}
-
-.landing-tagline {
+.hero-name {
   font-size: 20px;
-  font-weight: 500;
-  color: #1a1a1a;
-  line-height: 1.4;
-  margin-bottom: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 18px;
 }
 
-.landing-description {
+.hero-meaning {
   font-size: 15px;
-  color: #555;
-  line-height: 1.6;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin-bottom: 28px;
+}
+
+.hero-tagline {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
   margin-bottom: 36px;
 }
 
-.landing-actions {
+.hero-actions {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-.landing-actions button {
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
+.btn-primary {
+  padding: 14px 28px;
+  border-radius: 12px;
   border: none;
-}
-
-.landing-actions .primary {
-  background: #1a1a1a;
+  background: var(--ink);
   color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
-.landing-actions .secondary {
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: 1.5px solid var(--ink);
   background: transparent;
-  color: #1a1a1a;
-  border: 1px solid #d0d0d0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- SECTION TITLE ---------- */
+
+.section-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 60px auto 40px;
+}
+
+/* ---------- FEATURE ROWS ---------- */
+
+.feature-row {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  max-width: 900px;
+  margin: 0 auto 64px;
+  padding: 0 24px;
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.feature-row:not(.reverse) {
+  transform: translate(-30px, 20px);
+}
+
+.feature-row.reverse {
+  flex-direction: row-reverse;
+  transform: translate(30px, 20px);
+}
+
+.feature-row.visible {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+
+.feature-text {
+  flex: 1;
+}
+
+.feature-text h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.feature-text p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.feature-text.center {
+  text-align: center;
+}
+
+.feature-text.center p {
+  margin-bottom: 20px;
+}
+
+.merchant-callout {
+  justify-content: center;
+  max-width: 500px;
+  transform: translate(0, 20px) !important;
+}
+
+/* ---------- FOOTER ---------- */
+
+.landing-footer {
+  text-align: center;
+  padding: 30px 24px 60px;
+}
+
+.footer-mark {
+  font-family: "Kalam", cursive;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--lavender-deep);
+  opacity: 0.6;
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 720px) {
+  .landing-nav {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .landing-nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hero-logo {
+    font-size: 52px;
+  }
+  .hero-tagline {
+    font-size: 17px;
+  }
+  .feature-row,
+  .feature-row.reverse {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+    margin-bottom: 48px;
+    transform: translate(0, 20px);
+  }
+  .feature-icon-box {
+    width: 96px;
+    height: 96px;
+  }
+  .doodle {
+    width: 44px;
+    height: 44px;
+  }
+  .section-title {
+    font-size: 24px;
+    margin: 40px auto 28px;
+  }
 }
