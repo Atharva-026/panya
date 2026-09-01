@@ -137,4 +137,56 @@
   .storefront-page {
     padding: 32px 16px;
   }
+}
+
+@media (max-width: 480px) {
+  .storefront-page {
+    padding: 28px 16px;
+  }
+
+  .storefront-header h1 {
+    font-size: 22px;
+  }
+
+  .storefront-header p {
+    font-size: 13px;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .category-tile-image {
+    height: 80px;
+  }
+
+  .category-tile-label {
+    font-size: 13px;
+    padding: 10px 12px 2px;
+  }
+
+  .category-tile-count {
+    font-size: 11px;
+    padding: 0 12px 12px;
+  }
+
+  .all-products-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 12px;
+  }
+
+  .product-image {
+    height: 140px;
+  }
+
+  .product-info {
+    padding: 12px;
+  }
 } 
