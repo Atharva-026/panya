@@ -22,6 +22,26 @@ function Automation() {
   const [runningId, setRunningId] = useState(null);
   const [lastResult, setLastResult] = useState(null);
 
+  const isGuest = !!sessionStorage.getItem("panya_guest");
+
+  if (isGuest) {
+    return (
+      <div className="automation-page">
+        <div className="signin-required-card">
+          <div className="signin-required-title">Sign in to use Auto-Order</div>
+          <p>
+            Automated purchasing runs on a schedule tied to your account, so it
+            needs a signed-in identity to keep working reliably — guest sessions
+            don't persist between visits.
+          </p>
+          <button className="btn-primary" onClick={() => (window.location.href = "/signin")}>
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function loadRules() {
     fetchAutoOrderRules().then((data) => {
       setRules(Array.isArray(data) ? data : []);

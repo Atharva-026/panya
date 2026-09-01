@@ -226,7 +226,7 @@ router.post("/webhook", express.json({ verify: (req, res, buf) => { req.rawBody 
       const paymentId = event.payload.payment.entity.id;
 
       const order = await Order.findOneAndUpdate(
-        { razorpayOrderId: paymentLinkId },
+        { razorpayOrderId: paymentLinkId, status: { $ne: "paid" } },
         { status: "paid", razorpayPaymentId: paymentId },
         { returnDocument: "after" }
       );
@@ -238,6 +238,12 @@ router.post("/webhook", express.json({ verify: (req, res, buf) => { req.rawBody 
           orderRef: order._id,
           amount: order.amount,
         });
+
+        if (order.customerEmail) {
+          sendOrderConfirmationEmail(order.customerEmail, order).catch((err) =>
+            console.error("Order confirmation email failed:", err)
+          );
+        }
       }
     }
 
@@ -336,6 +342,12 @@ router.post("/verify", async (req, res) => {
       orderRef: order?._id,
       amount: order?.amount,
     });
+
+    if (order?.customerEmail) {
+      sendOrderConfirmationEmail(order.customerEmail, order).catch((err) =>
+        console.error("Order confirmation email failed:", err)
+      );
+    }
 
     res.json({ success: true, order });
   } catch (err) {

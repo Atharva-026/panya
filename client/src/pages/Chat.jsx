@@ -202,7 +202,7 @@ function Chat() {
   }
 
   async function handleCheckout() {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || loading) return;
 
     if (!customer.name || !customer.email) {
       setShowCustomerForm(true);
@@ -219,7 +219,13 @@ function Chat() {
     const result = await confirmOrder(items, customer);
 
     if (result.blocked) {
-      setMessages((prev) => [...prev, { role: "assistant", text: result.reason }]);
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "assistant" && last.text === result.reason) {
+          return prev;
+        }
+        return [...prev, { role: "assistant", text: result.reason }];
+      });
       setLoading(false);
       return;
     }
