@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ThemeToggle from "./components/ThemeToggle";
 import { logout, checkAuth } from "./api/client";
 import "./App.css";
 
@@ -53,6 +54,7 @@ function Nav() {
         <Link to="/automation">Automation</Link>
       </div>
       <div className="nav-right">
+        <ThemeToggle />
         {profile.name && (
           <div className="nav-profile">
             <div className="nav-avatar">{initials}</div>

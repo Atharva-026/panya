@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ThemeToggle from "../components/ThemeToggle";
 import { sendGuestWelcome } from "../api/client";
 import "./SignIn.css";
 
@@ -23,6 +24,7 @@ function SignIn() {
 
   return (
     <div className="signin-page">
+      <ThemeToggle floating />
       <div className="signin-card">
         <div className="signin-name">Panya</div>
         <p className="signin-subtitle">Sign in to start shopping with your assistant.</p>
