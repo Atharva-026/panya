@@ -67,6 +67,7 @@ function MerchantDashboard() {
   return (
     <div className="dashboard-page">
       <ThemeToggle floating />
+      <a href="/" className="nav-brand merchant-brand">पण्य</a>
       <div className="dashboard-header-row">
         <div className="dashboard-header">Merchant Dashboard</div>
         <a href="/merchant/products" className="manage-products-link">Manage Products →</a>

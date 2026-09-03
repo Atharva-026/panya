@@ -1,5 +1,8 @@
 import Groq from "groq-sdk";
+import { trace } from "@opentelemetry/api";
 import MerchantInsight from "../models/MerchantInsight.js";
+
+const tracer = trace.getTracer('panya-backend');
 import {
   getTopProducts,
   getRevenueByCategory,
@@ -52,10 +55,19 @@ All monetary amounts in the data are in Indian Rupees — always use the ₹ sym
 Reply ONLY as a strict JSON array of strings, no extra text:
 ["bullet one", "bullet two"]`;
 
-    const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
+    const completion = await tracer.startActiveSpan('groq.merchant_insight', async (span) => {
+      try {
+        const result = await groq.chat.completions.create({
+          model: "openai/gpt-oss-120b",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.4,
+        });
+        span.setAttribute('groq.model', 'openai/gpt-oss-120b');
+        span.setAttribute('groq.temperature', 0.4);
+        return result;
+      } finally {
+        span.end();
+      }
     });
 
     narrative = JSON.parse(completion.choices[0].message.content);

@@ -4,11 +4,42 @@
   padding: 40px 24px;
 }
 
+.products-page-inner {
+  width: 100%;
+}
+
 .products-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
+}
+
+.back-to-merchant-link {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.back-to-merchant-link:hover {
+  text-decoration: underline;
+}
+
+.merchant-brand {
+  font-family: "Kalam", cursive;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.merchant-brand:hover {
+  opacity: 0.8;
 }
 
 .add-product-btn {

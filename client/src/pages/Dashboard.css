@@ -12,6 +12,20 @@
   margin-bottom: 32px;
 }
 
+.merchant-brand {
+  font-family: "Kalam", cursive;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.merchant-brand:hover {
+  opacity: 0.8;
+}
+
 .dashboard-header-row {
   display: flex;
   justify-content: space-between;

@@ -32,7 +32,13 @@ function Nav() {
     }
   }, [location.pathname]);
 
-  if (location.pathname === "/" || location.pathname === "/signin" || location.pathname === "/merchant") return null;
+  if (
+    location.pathname === "/" ||
+    location.pathname === "/signin" ||
+    location.pathname === "/merchant" ||
+    location.pathname === "/merchant/products"
+  )
+    return null;
 
   async function handleLogout() {
     sessionStorage.removeItem("panya_guest");

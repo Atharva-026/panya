@@ -1,6 +1,9 @@
 import Groq from "groq-sdk";
+import { trace } from "@opentelemetry/api";
 import Product from "../models/Product.js";
 import { createPaymentLinkForItems } from "../routes/orders.js";
+
+const tracer = trace.getTracer('panya-backend');
 
 export async function runAutonomousPurchase(goal, budget, userId, customer = {}) {
   const products = await Product.find({ stock: { $gt: 0 } });
@@ -30,10 +33,19 @@ Pick exactly ONE item that best satisfies the buyer's goal. Reply ONLY in strict
   "reasoning": "one sentence on why this fits the goal"
 }`;
 
-  const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
+  const completion = await tracer.startActiveSpan('groq.product_selection', async (span) => {
+    try {
+      const result = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      });
+      span.setAttribute('groq.model', 'openai/gpt-oss-120b');
+      span.setAttribute('groq.temperature', 0.3);
+      return result;
+    } finally {
+      span.end();
+    }
   });
 
   const decision = JSON.parse(completion.choices[0].message.content);

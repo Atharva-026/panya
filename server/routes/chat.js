@@ -2,11 +2,13 @@ import express from "express";
 import multer from "multer";
 import Groq from "groq-sdk";
 import { toFile } from "groq-sdk";
+import { trace } from "@opentelemetry/api";
 import Product from "../models/Product.js";
 import ChatQueryLog from "../models/ChatQueryLog.js";
 import { createOrderForItems } from "./orders.js";
 
 const router = express.Router();
+const tracer = trace.getTracer('panya-backend');
 
 // Voice notes are short (a few seconds of speech); 10MB is a generous ceiling
 // that still blocks abusive uploads before they reach Groq.
@@ -51,10 +53,19 @@ Reply ONLY in strict JSON, no extra text:
   "reason": "one short sentence explaining why this pairs well"
 }`;
 
-  const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.4,
+  const completion = await tracer.startActiveSpan('groq.upsell_reasoning', async (span) => {
+    try {
+      const result = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.4,
+      });
+      span.setAttribute('groq.model', 'openai/gpt-oss-120b');
+      span.setAttribute('groq.temperature', 0.4);
+      return result;
+    } finally {
+      span.end();
+    }
   });
 
   try {
@@ -129,13 +140,23 @@ Reply ONLY in strict JSON, no extra text, no markdown, in this exact shape:
   "qty": 1
 }`;
 
-    const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `${message}\n\n(Reply in ${languageName}.)` },
-      ],
-      temperature: 0.3,
+    const completion = await tracer.startActiveSpan('groq.intent_parsing', async (span) => {
+      try {
+        const result = await groq.chat.completions.create({
+          model: "openai/gpt-oss-120b",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `${message}\n\n(Reply in ${languageName}.)` },
+          ],
+          temperature: 0.3,
+        });
+        span.setAttribute('groq.model', 'openai/gpt-oss-120b');
+        span.setAttribute('groq.temperature', 0.3);
+        span.setAttribute('groq.language', language);
+        return result;
+      } finally {
+        span.end();
+      }
     });
 
     const raw = completion.choices[0].message.content;

@@ -1,12 +1,14 @@
 import crypto from "crypto";
 import express from "express";
 import Razorpay from "razorpay";
+import { trace } from "@opentelemetry/api";
 import AutoOrderRule from "../models/AutoOrderRule.js";
 import User from "../models/User.js";
 import { getOrCreateRazorpayCustomer } from "./orders.js";
 import { runAutonomousPurchase } from "../utils/aiBuyer.js";
 
 const router = express.Router();
+const tracer = trace.getTracer('panya-backend');
 
 function getRazorpayInstance() {
   return new Razorpay({
@@ -68,16 +70,25 @@ router.post("/rules/:id/authorize", requireAuth, async (req, res) => {
 
     const amount = rule.budget * 100;
 
-    const order = await razorpay.orders.create({
-      amount,
-      currency: "INR",
-      customer_id: customerId,
-      method: "card",
-      token: {
-        max_amount: rule.budget * 100,
-        expire_at: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60),
-      },
-      notes: { ruleId: rule._id.toString() },
+    const order = await tracer.startActiveSpan('razorpay.create_order', async (span) => {
+      try {
+        const result = await razorpay.orders.create({
+          amount,
+          currency: "INR",
+          customer_id: customerId,
+          method: "card",
+          token: {
+            max_amount: rule.budget * 100,
+            expire_at: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60),
+          },
+          notes: { ruleId: rule._id.toString() },
+        });
+        span.setAttribute('razorpay.currency', 'INR');
+        span.setAttribute('razorpay.amount_paise', amount);
+        return result;
+      } finally {
+        span.end();
+      }
     });
 
     res.json({

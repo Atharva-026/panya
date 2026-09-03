@@ -96,12 +96,17 @@ function MerchantProducts() {
 
   return (
     <div className="products-page">
-      <div className="products-header">
-        <div className="dashboard-header">Manage Products</div>
-        <button className="add-product-btn" onClick={openAddModal}>+ Add Product</button>
-      </div>
+      <div className="products-page-inner">
+        <a href="/" className="nav-brand merchant-brand">पण्य</a>
+        <div className="products-header">
+          <div>
+            <a href="/merchant" className="back-to-merchant-link">← Merchant Dashboard</a>
+            <div className="dashboard-header">Manage Products</div>
+          </div>
+          <button className="add-product-btn" onClick={openAddModal}>+ Add Product</button>
+        </div>
 
-      {loading ? (
+        {loading ? (
         <div className="products-loading">Loading products...</div>
       ) : (
         <div className="products-table-wrap">
@@ -121,7 +126,16 @@ function MerchantProducts() {
                 <tr key={p._id}>
                   <td className="product-thumb-cell">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="product-thumb-sm" />
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="product-thumb-sm"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src =
+                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%23e8e4dc'/%3E%3C/svg%3E";
+                        }}
+                      />
                     ) : (
                       <div className="product-thumb-sm placeholder" />
                     )}
@@ -199,6 +213,7 @@ function MerchantProducts() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

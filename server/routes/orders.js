@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import express from "express";
 import Razorpay from "razorpay";
+import { trace } from "@opentelemetry/api";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import AuditLog from "../models/AuditLog.js";
@@ -8,6 +9,7 @@ import MerchantRule from "../models/MerchantRule.js";
 import { sendOrderConfirmationEmail } from "../utils/email.js";
 
 const router = express.Router();
+const tracer = trace.getTracer('panya-backend');
 
 function getRazorpayInstance() {
   return new Razorpay({
@@ -96,10 +98,22 @@ export async function createOrderForItems(items, customer = {}, userId = null) {
   }
 
   const razorpay = getRazorpayInstance();
-  const rzpOrder = await razorpay.orders.create({
-    amount: amount * 100,
-    currency: "INR",
-    receipt: `rcpt_${Date.now()}`,
+  const { trace } = await import('@opentelemetry/api');
+  const tracer = trace.getTracer('panya-backend');
+  
+  const rzpOrder = await tracer.startActiveSpan('razorpay.create_order', async (span) => {
+    try {
+      const result = await razorpay.orders.create({
+        amount: amount * 100,
+        currency: "INR",
+        receipt: `rcpt_${Date.now()}`,
+      });
+      span.setAttribute('razorpay.currency', 'INR');
+      span.setAttribute('razorpay.amount_paise', amount * 100);
+      return result;
+    } finally {
+      span.end();
+    }
   });
 
   const order = await Order.create({
@@ -153,26 +167,36 @@ export async function createPaymentLinkForItems(items, customer = {}, userId = n
   }
 
   const razorpay = getRazorpayInstance();
+  const { trace } = await import('@opentelemetry/api');
+  const paymentTracer = trace.getTracer('panya-backend');
 
   let paymentLink;
-  try {
-    paymentLink = await razorpay.paymentLink.create({
-      amount: amount * 100,
-      currency: "INR",
-      accept_partial: false,
-      description: `Panya auto-order: ${orderItems.map((i) => i.name).join(", ")}`,
-      customer: {
-        name: customer.name || "Customer",
-        email: customer.email || "",
-        contact: "9876543210",
-      },
-      notify: { sms: false, email: false },
-      notes: { source: "auto-order-agent" },
-    });
-  } catch (err) {
-    console.error("Payment link creation failed:", JSON.stringify(err.error || err, null, 2));
-    throw err;
-  }
+  paymentLink = await paymentTracer.startActiveSpan('razorpay.create_payment_link', async (span) => {
+    try {
+      const result = await razorpay.paymentLink.create({
+        amount: amount * 100,
+        currency: "INR",
+        accept_partial: false,
+        description: `Panya auto-order: ${orderItems.map((i) => i.name).join(", ")}`,
+        customer: {
+          name: customer.name || "Customer",
+          email: customer.email || "",
+          contact: "9876543210",
+        },
+        notify: { sms: false, email: false },
+        notes: { source: "auto-order-agent" },
+      });
+      span.setAttribute('razorpay.currency', 'INR');
+      span.setAttribute('razorpay.amount_paise', amount * 100);
+      return result;
+    } catch (err) {
+      span.recordException(err);
+      console.error("Payment link creation failed:", JSON.stringify(err.error || err, null, 2));
+      throw err;
+    } finally {
+      span.end();
+    }
+  });
 
   const order = await Order.create({
     razorpayOrderId: paymentLink.id,
