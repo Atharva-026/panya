@@ -150,10 +150,10 @@ Panya is instrumented end-to-end with OpenTelemetry, with custom spans specifica
 
 | Screenshot | What it shows |
 |---|---|
-| `docs/traces/trace-01-groq-upsell-bottleneck-18s.png` | A real 18.72s trace where the `groq.upsell_reasoning` span alone accounted for 16.45s |
-| `docs/traces/trace-02-groq-429-error-detail.png` | The root cause of the above: a `429` rate-limit response from Groq, captured directly in the span |
-| `docs/traces/trace-03-razorpay-create-order-checkout.png` | A normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes |
-| `docs/traces/trace-04-razorpay-create-payment-link-autoorder.png` | The autonomous auto-order path creating a real Payment Link, alongside its own DB writes (`insert orders`, `insert auditlogs`, `update autoorderrules`) |
+| ![Groq upsell bottleneck trace](docs/traces/trace-01-groq-upsell-bottleneck-18s.png) | A real 18.72s trace where the `groq.upsell_reasoning` span alone accounted for 16.45s |
+| ![Groq 429 error detail](docs/traces/trace-02-groq-429-error-detail.png) | The root cause of the above: a `429` rate-limit response from Groq, captured directly in the span |
+| ![Razorpay checkout trace](docs/traces/trace-03-razorpay-create-order-checkout.png) | A normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes |
+| ![Razorpay auto-order trace](docs/traces/trace-04-razorpay-create-payment-link-autoorder.png) | The autonomous auto-order path creating a real Payment Link, alongside its own DB writes (`insert orders`, `insert auditlogs`, `update autoorderrules`) |
 
 This wasn't a staged demonstration — tracing surfaced a genuine performance issue (LLM rate-limiting under a specific reasoning call) that wasn't otherwise visible from application logs alone.
 
