@@ -95,11 +95,18 @@ function Chat() {
     const text = (overrideText ?? input).trim();
     if (!text || loading) return;
 
+    // Build history from the conversation so far (BEFORE appending the new
+    // user message below), so the backend/Groq has prior turns for context.
+    const history = messages.map((m) => ({
+      role: m.role === "user" ? "user" : "assistant",
+      content: m.text,
+    }));
+
     setMessages((prev) => [...prev, { role: "user", text }]);
     setInput("");
     setLoading(true);
 
-    const data = await sendChatMessage(text, language);
+    const data = await sendChatMessage(text, language, history);
     setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
     setPendingMatch(data.matchedProductId ? data : null);
     setLoading(false);

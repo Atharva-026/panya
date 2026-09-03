@@ -1,8 +1,8 @@
-export async function sendChatMessage(message, language = "en") {
+export async function sendChatMessage(message, language = "en", history = []) {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, language }),
+    body: JSON.stringify({ message, language, history }),
   });
   return res.json();
 }
