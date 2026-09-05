@@ -12,6 +12,8 @@ Panya is a conversational AI shopping agent built on Razorpay's payment infrastr
 
 - **Live app:** https://panya-app-live.azurewebsites.net
 - **Repository:** https://github.com/Atharva-026/panya
+- **Blog — Overview & Architecture:** https://atharva026.hashnode.dev/panya-an-ai-agent-that-shops-sells-and-explains-every-rupee
+- **Blog — Challenges & Observability:** https://atharva026.hashnode.dev/the-wall-i-hit-building-panya-and-what-opentelemetry-showed-me
 
 ---
 
@@ -39,7 +41,9 @@ Panya meets this directly:
 - Persistent cart with live spend-rule visibility (shows whether the current cart is within or exceeds merchant limits, before checkout)
 - Dynamic, LLM-reasoned upsell suggestions with a stated reason for every pairing — not a hardcoded category map
 - Multi-candidate stylistic matching for vague requests (e.g. "something formal for a wedding")
+- Clarifying questions instead of a silent guess when two or more products are genuinely comparable matches
 - Product images shown inline in chat
+- Light and dark mode across every page, sharing one design-token system with the landing page's identity
 - Personal order history and spend dashboard
 - Google OAuth sign-in, with a guest-mode fallback for quick access without a real account
 
@@ -140,7 +144,7 @@ SECURE_COOKIES=false
 
 ## Deployment
 
-Panya is containerized with a multi-stage Dockerfile (React build → bundled into the Express image) and deployed to **Azure App Service** via a private **Azure Container Registry**, using managed identity for registry access (no stored credentials). A **GitHub Actions** pipeline automatically builds and pushes a new image and restarts the Web App on every push to `main`.
+Panya is containerized with a multi-stage Dockerfile (React build → bundled into the Express image) and deployed to **Azure App Service** via a private **Azure Container Registry**, using managed identity for registry access (no stored credentials). A **GitHub Actions** pipeline builds, pushes, and deploys through a staging environment before production, and automatically restarts the Web App on every push to `main`.
 
 ---
 
@@ -150,10 +154,10 @@ Panya is instrumented end-to-end with OpenTelemetry, with custom spans specifica
 
 | Screenshot | What it shows |
 |---|---|
-| ![Groq upsell bottleneck trace](docs/traces/trace-01-groq-upsell-bottleneck-18s.png) | A real 18.72s trace where the `groq.upsell_reasoning` span alone accounted for 16.45s |
-| ![Groq 429 error detail](docs/traces/trace-02-groq-429-error-detail.png) | The root cause of the above: a `429` rate-limit response from Groq, captured directly in the span |
-| ![Razorpay checkout trace](docs/traces/trace-03-razorpay-create-order-checkout.png) | A normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes |
-| ![Razorpay auto-order trace](docs/traces/trace-04-razorpay-create-payment-link-autoorder.png) | The autonomous auto-order path creating a real Payment Link, alongside its own DB writes (`insert orders`, `insert auditlogs`, `update autoorderrules`) |
+| `docs/traces/trace-01-groq-upsell-bottleneck-18s.png` | A real 18.72s trace where the `groq.upsell_reasoning` span alone accounted for 16.45s |
+| `docs/traces/trace-02-groq-429-error-detail.png` | The root cause of the above: a `429` rate-limit response from Groq, captured directly in the span |
+| `docs/traces/trace-03-razorpay-create-order-checkout.png` | A normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes |
+| `docs/traces/trace-04-razorpay-create-payment-link-autoorder.png` | The autonomous auto-order path creating a real Payment Link, alongside its own DB writes (`insert orders`, `insert auditlogs`, `update autoorderrules`) |
 
 This wasn't a staged demonstration — tracing surfaced a genuine performance issue (LLM rate-limiting under a specific reasoning call) that wasn't otherwise visible from application logs alone.
 
@@ -187,6 +191,3 @@ Groq deprecated `llama-3.3-70b-versatile` partway through development. Diagnosed
 ## Roadmap / Future Work
 
 - Complete business KYC to enable full tokenized recurring payments (Spotify-style silent autopay)
-- Clarifying-question tie-breaking when the agent finds two near-identical product matches (rather than picking silently)
-- Dark mode across all inner pages
-- Dedicated staging environment in the CI/CD pipeline
