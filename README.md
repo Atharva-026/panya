@@ -29,7 +29,7 @@ Panya meets this directly:
 | **Bounded** | Merchant-configurable per-order spend limit *and* a rolling daily spend cap, enforced server-side before any payment is attempted. |
 | **Gated** | Payments require either real-time customer confirmation (chat checkout) or one-tap human approval (autonomous auto-order via Payment Link) — money never moves without a deliberate gate. |
 | **Audit trail** | A dedicated merchant dashboard shows every order, block, and payment event, timestamped and reasoned, not just a raw database table. |
-| **Graceful failure** | Multiple genuine failure modes are handled visibly — see [Failure Stories](#failure-stories--what-broke-and-how-we-got-out) below. |
+| **Graceful failure** | Multiple genuine failure modes are handled visibly — see [Failure Stories](#failure-stories--what-broke-and-how-i-got-out) below. |
 | **Agent-to-agent commerce ("why now")** | A standalone autonomous AI buyer script and a full scheduled Auto-Order feature demonstrate real unattended agent-initiated purchasing — not just a conversational checkout. |
 
 ---
@@ -103,6 +103,10 @@ Customer (chat, voice, or scheduled rule)
   Payment verified ──► Audit log + email confirmation ──► Merchant dashboard
 ```
 
+**Diagram:**
+
+![Panya architecture flow](docs/diagrams/architecture-flow.png)
+
 ---
 
 ## Running Locally
@@ -152,29 +156,40 @@ Panya is containerized with a multi-stage Dockerfile (React build → bundled in
 
 Panya is instrumented end-to-end with OpenTelemetry, with custom spans specifically around the two categories of external calls that matter most for this track: **LLM reasoning calls** and **Razorpay payment operations**. Traces are visualized in Jaeger.
 
-| Screenshot | What it shows |
-|---|---|
-| `docs/traces/trace-01-groq-upsell-bottleneck-18s.png` | A real 18.72s trace where the `groq.upsell_reasoning` span alone accounted for 16.45s |
-| `docs/traces/trace-02-groq-429-error-detail.png` | The root cause of the above: a `429` rate-limit response from Groq, captured directly in the span |
-| `docs/traces/trace-03-razorpay-create-order-checkout.png` | A normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes |
-| `docs/traces/trace-04-razorpay-create-payment-link-autoorder.png` | The autonomous auto-order path creating a real Payment Link, alongside its own DB writes (`insert orders`, `insert auditlogs`, `update autoorderrules`) |
+**Trace 1 — an 18.72s chat response, with `groq.upsell_reasoning` alone accounting for 16.45s:**
+
+![Groq upsell bottleneck trace](docs/traces/trace-01-groq-upsell-bottleneck-18s.png)
+
+**Trace 2 — the root cause, captured directly in the span: a `429` rate-limit response from Groq:**
+
+![Groq 429 error detail](docs/traces/trace-02-groq-429-error-detail.png)
+
+**Trace 3 — a normal chat checkout, with `razorpay.amount_paise` and `currency` attached as span attributes:**
+
+![Razorpay checkout trace](docs/traces/trace-03-razorpay-create-order-checkout.png)
+
+**Trace 4 — the autonomous auto-order path creating a real Payment Link, alongside its own DB writes:**
+
+![Razorpay auto-order trace](docs/traces/trace-04-razorpay-create-payment-link-autoorder.png)
 
 This wasn't a staged demonstration — tracing surfaced a genuine performance issue (LLM rate-limiting under a specific reasoning call) that wasn't otherwise visible from application logs alone.
 
 ---
 
-## Failure Stories — What Broke, and How We Got Out
+## Failure Stories — What Broke, and How I Got Out
 
 **1. Full tokenized autopay hit a real platform wall.**
-We built the complete Razorpay recurring-payments flow — Customer creation, token-generating orders, the checkout consent screen — and it worked right up to the point where actually completing a recurring charge required full business KYC/account activation, which we deliberately hadn't done to keep the project safely in test mode. Rather than complete unnecessary KYC for a hackathon demo, we pivoted to **Razorpay Payment Links**: the agent still reasons and initiates the transaction autonomously, and the customer still only needs one tap to approve — achieving the same practical outcome through a mechanism that doesn't require live-account activation.
+I built the complete Razorpay recurring-payments flow — Customer creation, token-generating orders, the checkout consent screen — and it worked right up to the point where actually completing a recurring charge required full business KYC/account activation, which I deliberately hadn't done to keep the project safely in test mode. Rather than complete unnecessary KYC for a hackathon demo, I pivoted to **Razorpay Payment Links**: the agent still reasons and initiates the transaction autonomously, and the customer still only needs one tap to approve — achieving the same practical outcome through a mechanism that doesn't require live-account activation.
+
+Diagrams — [what I attempted](docs/diagrams/autopay-attempted-flow.png) vs. [what I shipped](docs/diagrams/autopay-shipped-flow.png).
 
 **2. The observability backend itself needed a pivot.**
-Our first choice, SigNoz, hit a local storage initialization issue in its standalone Docker image, and SigNoz Cloud required a company email domain we didn't have. We switched to **Jaeger** — equally OpenTelemetry-native, equally standard — with zero change to our actual instrumentation code, since OpenTelemetry is vendor-neutral by design.
+My first choice, SigNoz, hit a local storage initialization issue in its standalone Docker image, and SigNoz Cloud required a company email domain I didn't have. I switched to **Jaeger** — equally OpenTelemetry-native, equally standard — with zero change to my actual instrumentation code, since OpenTelemetry is vendor-neutral by design.
 
 **3. Tracing found a real bug: Groq rate-limiting.**
-Once tracing was live, we discovered an 18-second chat response caused by a `429` rate-limit error during upsell reasoning — a genuine performance issue we wouldn't have precisely diagnosed without distributed tracing.
+Once tracing was live, I discovered an 18-second chat response caused by a `429` rate-limit error during upsell reasoning — a genuine performance issue I wouldn't have precisely diagnosed without distributed tracing.
 
-**4. Express 5's routing syntax silently broke our production catch-all route.**
+**4. Express 5's routing syntax silently broke my production catch-all route.**
 `app.get("*", ...)` — valid in Express 4 — throws at startup in Express 5's stricter path parser. Fixed with the new named-wildcard syntax, `app.get("/{*splat}", ...)`.
 
 **5. Secure cookies silently failed over local HTTP during a production-mode test.**
