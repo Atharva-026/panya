@@ -6,6 +6,7 @@ import Product from "../models/Product.js";
 import { getRevenueByDay, getTopProducts, getRevenueByCategory, getRestockUrgency } from "../utils/analytics.js";
 import MerchantInsight from "../models/MerchantInsight.js";
 import { generateMerchantInsight } from "../utils/insightGenerator.js";
+import { syncProductSafely } from "../utils/salesforce.js";
 
 const router = express.Router();
 
@@ -60,6 +61,7 @@ router.post("/products", async (req, res) => {
       material: material || "",
       imageUrl: imageUrl || "",
     });
+    syncProductSafely(product);
 
     res.json(product);
   } catch (err) {
@@ -77,6 +79,7 @@ router.put("/products/:id", async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!product) return res.status(404).json({ error: "Product not found" });
+    syncProductSafely(product);
     res.json(product);
   } catch (err) {
     console.error("Product update failed:", err);

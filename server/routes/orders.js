@@ -7,6 +7,7 @@ import Order from "../models/Order.js";
 import AuditLog from "../models/AuditLog.js";
 import MerchantRule from "../models/MerchantRule.js";
 import { sendOrderConfirmationEmail } from "../utils/email.js";
+import { syncOrderSafely } from "../utils/salesforce.js";
 
 const router = express.Router();
 const tracer = trace.getTracer('panya-backend');
@@ -126,6 +127,7 @@ export async function createOrderForItems(items, customer = {}, userId = null) {
     customerEmail: customer.email || "",
     userId,
   });
+  syncOrderSafely(order._id);
 
   await AuditLog.create({
     action: "order_created",
@@ -209,6 +211,7 @@ export async function createPaymentLinkForItems(items, customer = {}, userId = n
     isAutoOrder: true,
     userId,
   });
+  syncOrderSafely(order._id);
 
   await AuditLog.create({
     action: "auto_order_link_created",
@@ -294,6 +297,7 @@ router.get("/payment-link-status/:orderId", async (req, res) => {
       order.status = "paid";
       order.razorpayPaymentId = link.payments?.[0]?.payment_id || "";
       await order.save();
+      syncOrderSafely(order._id);
 
       await AuditLog.create({
         action: "payment_verified",
@@ -359,6 +363,7 @@ router.post("/verify", async (req, res) => {
       { status: "paid", razorpayPaymentId: razorpay_payment_id },
       { returnDocument: "after" }
     );
+    if (order) syncOrderSafely(order._id);
 
     await AuditLog.create({
       action: "payment_verified",
