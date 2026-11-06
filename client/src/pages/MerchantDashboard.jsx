@@ -71,6 +71,7 @@ function MerchantDashboard() {
       <div className="dashboard-header-row">
         <div className="dashboard-header">Merchant Dashboard</div>
         <a href="/merchant/products" className="manage-products-link">Manage Products →</a>
+        <a href="https://orgfarm-a697a67c21-dev-ed.develop.lightning.force.com/lightning/r/Dashboard/01ZjV000001HOF3UAO/view?queryScope=userFolders" target="_blank" rel="noreferrer" className="manage-products-link">Open Salesforce dashboard (Salesforce login required)</a>
       </div>
 
       {insights?.spikeAlert?.triggered && (
